@@ -6,6 +6,23 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **BoQ import** from `.xlsx` / `.csv` — headers matched by common aliases
+  (part no / qty / unit / unit price), parsed server-side with ExcelJS, rows
+  land in the editable table for review before saving
+- **Duplicate proposal** — deep copy of details, product links, section
+  snapshots and BoQ (not the generated files)
+- **Refresh sections from latest templates** — overwrites non-edited snapshots
+  from their source template, appends newly added templates, keeps edited ones,
+  and reports how many are orphaned
+- Vitest unit tests: `resolvePlaceholders`, `assembleProposalHtml`,
+  `parseBoqBuffer` (`npm test`)
+
+### Fixed
+
+- Dashboard no longer shows the admin-only "Products" card to AUTHOR users
+
 ## [0.2.0] - 2026-09-04
 
 ### Added

@@ -28,26 +28,30 @@
 - [x] PDF export (Puppeteer) and DOCX export (@turbodocx/html-to-docx)
 - [x] Download + regenerate; store artifacts on the proposal
 
-## Phase 2
+## In progress — Phase 2
 
-- [ ] BrandProfile CRUD UI (colors, fonts, cover layout, header/footer, page numbers)
-- [ ] BoQ import from Excel/CSV (ExcelJS)
-- [ ] Reusable customer contacts; proposal duplication
-- [ ] Section template versioning + diff; "update proposal from latest template"
-- [ ] Pricing toggle, currency, totals, taxes
+- [x] BrandProfile CRUD UI (done in Phase 1)
+- [x] BoQ import from Excel/CSV (ExcelJS) — header-alias mapping, review before save
+- [x] Proposal duplication (deep copy of details, products, sections, BoQ)
+- [x] "Refresh sections from latest templates" — updates non-edited snapshots,
+      adds new templates, reports edited/orphaned counts
+- [x] Unit tests (Vitest) for `resolvePlaceholders`, `assembleProposalHtml`,
+      `parseBoqBuffer`
+- [x] Pricing toggle + currency (done in Phase 1)
+- [ ] Reusable customer-contact picker on the proposal
+- [ ] Section template diff view (show what changed before refreshing)
+- [ ] Taxes / discounts on the BoQ
+- [ ] Playwright happy-path test
 
 ## Known gaps / tech debt
 
-- Dashboard shows a "Products" card to AUTHOR users; it redirects to `/403`.
-  Hide it or gate the link.
 - `package.json#prisma` seed config is deprecated in Prisma 6.19 — migrate to
   `prisma.config.ts` before a Prisma 7 upgrade (Prisma 7 also drops `url` in the
   datasource block — needs a driver adapter).
 - Section reorder is up/down buttons; wire real drag-and-drop.
 - PDF generation runs in-process via Puppeteer. On serverless hosts switch to
   `puppeteer-core` + `@sparticuz/chromium` or a dedicated worker.
-- No automated tests yet — add unit tests for `resolvePlaceholders` and
-  `assembleProposalHtml`, plus a Playwright happy-path.
+- `refreshProposalSections` never deletes orphaned snapshots — only reports them.
 
 ## Phase 3
 
