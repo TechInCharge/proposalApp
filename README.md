@@ -18,7 +18,13 @@ Quantities, and the tool generates one branded proposal document (DOCX + PDF).
 - Node 20+ (tested on 24)
 - A PostgreSQL 14+ database. Options for local dev:
   - `docker compose up -d` (uses `docker-compose.yml`), or
-  - Postgres.app / Homebrew `postgresql@16`, or
+  - Homebrew: `brew install postgresql@16 && brew services start postgresql@16`,
+    then create the role + db:
+    ```bash
+    createuser proposal --createdb --pwprompt   # password: proposal
+    createdb -O proposal proposalbuilder
+    ```
+    (`--createdb` is required — Prisma Migrate needs a shadow database.)
   - a free cloud DB (Neon, Supabase) — put its URL in `.env`
 
 ## Setup

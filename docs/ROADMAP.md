@@ -12,22 +12,21 @@
 - Dashboard shell, login page, health endpoint
 - docker-compose Postgres, CI workflow
 
-## Phase 1 — MVP
+## Done — Phase 1 MVP (v0.2.0)
 
-- [ ] Products admin: list / create / edit / archive (ADMIN)
-- [ ] Section templates: TipTap editor, ordering, placeholder palette, versioning
-- [ ] Customers: list / create / edit, logo upload
-- [ ] Storage adapter (`src/lib/storage.ts`) — local disk now, S3 interface
-- [ ] Proposal builder wizard:
-  - [ ] step 1 — title, customer, brand profile, date, reference
-  - [ ] step 2 — select products (ordered), snapshot their sections
-  - [ ] step 3 — edit sections inline, include/exclude, reorder
-  - [ ] step 4 — BoQ table (manual rows)
-  - [ ] step 5 — preview + generate
-- [ ] Assembler: cover page + sections + BoQ table + header/footer
-- [ ] HTML renderer themed from BrandProfile
-- [ ] PDF export (Puppeteer) and DOCX export (html-to-docx)
-- [ ] Download + regenerate; store artifacts on the proposal
+- [x] Products admin: list / create / edit / archive (ADMIN)
+- [x] Section templates: TipTap editor, ordering, placeholder palette, versioning
+- [x] Customers: list / create / edit, logo upload
+- [x] Storage adapter (`src/lib/storage.ts`) — local disk now, S3 interface
+- [x] Proposal builder workspace (Details / Products / Sections / BoQ / Generate)
+  - [x] select products → snapshot their sections
+  - [x] edit sections inline, include/exclude, reorder
+  - [x] BoQ table (manual rows) with live totals
+  - [x] preview + generate
+- [x] Assembler: cover page + sections + BoQ table + header/footer
+- [x] HTML renderer themed from BrandProfile
+- [x] PDF export (Puppeteer) and DOCX export (@turbodocx/html-to-docx)
+- [x] Download + regenerate; store artifacts on the proposal
 
 ## Phase 2
 
@@ -36,6 +35,19 @@
 - [ ] Reusable customer contacts; proposal duplication
 - [ ] Section template versioning + diff; "update proposal from latest template"
 - [ ] Pricing toggle, currency, totals, taxes
+
+## Known gaps / tech debt
+
+- Dashboard shows a "Products" card to AUTHOR users; it redirects to `/403`.
+  Hide it or gate the link.
+- `package.json#prisma` seed config is deprecated in Prisma 6.19 — migrate to
+  `prisma.config.ts` before a Prisma 7 upgrade (Prisma 7 also drops `url` in the
+  datasource block — needs a driver adapter).
+- Section reorder is up/down buttons; wire real drag-and-drop.
+- PDF generation runs in-process via Puppeteer. On serverless hosts switch to
+  `puppeteer-core` + `@sparticuz/chromium` or a dedicated worker.
+- No automated tests yet — add unit tests for `resolvePlaceholders` and
+  `assembleProposalHtml`, plus a Playwright happy-path.
 
 ## Phase 3
 
