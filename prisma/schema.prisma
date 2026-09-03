@@ -168,8 +168,14 @@ model Proposal {
   createdById    String
   showPricing    Boolean        @default(true)
   currency       String         @default("USD")
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+
+  // Last generated artifacts
+  pdfUrl      String?
+  docxUrl     String?
+  generatedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   customer     Customer      @relation(fields: [customerId], references: [id])
   brandProfile BrandProfile? @relation(fields: [brandProfileId], references: [id])

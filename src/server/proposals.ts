@@ -1,0 +1,186 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { Prisma } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/rbac";
+import {
+  proposalInput,
+  boqTableInput,
+  proseMirrorDoc,
+  type ProposalInput,
+} from "@/lib/validators";
+import type { ProposalStatus } from "@prisma/client";
+
+export async function createProposal(
+  raw: ProposalInput,
+): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+  const session = await requireUser();
+  const parsed = proposalInput.safeParse(raw);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  }
+  const p = await prisma.proposal.create({
+    data: {
+      title: parsed.data.title,
+      customerId: parsed.data.customerId,
+      brandProfileId: parsed.data.brandProfileId || null,
+      proposalDate: parsed.data.proposalDate,
+      reference: parsed.data.reference || null,
+      showPricing: parsed.data.showPricing,
+      currency: parsed.data.currency,
+      createdById: session.user.id,
+    },
+  });
+  redirect(`/proposals/${p.id}/edit`);
+}
+
+export async function updateProposalDetails(id: string, raw: ProposalInput) {
+  await requireUser();
+  const parsed = proposalInput.safeParse(raw);
+  if (!parsed.success) {
+    return { ok: false as const, error: parsed.error.issues[0]?.message ?? "Invalid" };
+  }
+  await prisma.proposal.update({
+    where: { id },
+    data: {
+      title: parsed.data.title,
+      customerId: parsed.data.customerId,
+      brandProfileId: parsed.data.brandProfileId || null,
+      proposalDate: parsed.data.proposalDate,
+      reference: parsed.data.reference || null,
+      showPricing: parsed.data.showPricing,
+      currency: parsed.data.currency,
+    },
+  });
+  revalidatePath(`/proposals/${id}/edit`);
+  return { ok: true as const };
+}
+
+export async function setProposalStatus(id: string, status: ProposalStatus) {
+  await requireUser();
+  await prisma.proposal.update({ where: { id }, data: { status } });
+  revalidatePath(`/proposals/${id}/edit`);
+}
+
+/**
+ * Sync the selected products for a proposal.
+ * - Added products: their SectionTemplates are snapshotted into ProposalSections.
+ * - Removed products: their snapshot sections are deleted (edited copies included).
+ */
+export async function setProposalProducts(proposalId: string, productIds: string[]) {
+  await requireUser();
+
+  await prisma.$transaction(async (tx) => {
+    const current = await tx.proposalProduct.findMany({ where: { proposalId } });
+    const currentIds = new Set(current.map((c) => c.productId));
+    const nextIds = new Set(productIds);
+
+    const added = productIds.filter((pid) => !currentIds.has(pid));
+    const removed = [...currentIds].filter((pid) => !nextIds.has(pid));
+
+    if (removed.length) {
+      await tx.proposalProduct.deleteMany({
+        where: { proposalId, productId: { in: removed } },
+      });
+      await tx.proposalSection.deleteMany({
+        where: { proposalId, sourceProductId: { in: removed } },
+      });
+    }
+
+    // Re-write ordering for all selected products.
+    await tx.proposalProduct.deleteMany({
+      where: { proposalId, productId: { in: productIds } },
+    });
+    await tx.proposalProduct.createMany({
+      data: productIds.map((productId, i) => ({ proposalId, productId, order: i })),
+    });
+
+    if (added.length) {
+      const templates = await tx.sectionTemplate.findMany({
+        where: { productId: { in: added } },
+        orderBy: [{ productId: "asc" }, { order: "asc" }],
+      });
+      const base = await tx.proposalSection.count({ where: { proposalId } });
+      if (templates.length) {
+        await tx.proposalSection.createMany({
+          data: templates.map((t, i) => ({
+            proposalId,
+            sourceTemplateId: t.id,
+            sourceProductId: t.productId,
+            title: t.title,
+            order: base + i,
+            body: t.body as Prisma.InputJsonValue,
+          })),
+        });
+      }
+    }
+  });
+
+  revalidatePath(`/proposals/${proposalId}/edit`);
+}
+
+export async function updateProposalSection(
+  sectionId: string,
+  data: { title?: string; body?: unknown; included?: boolean },
+) {
+  await requireUser();
+  const patch: Record<string, unknown> = { edited: true };
+  if (typeof data.title === "string") patch.title = data.title;
+  if (typeof data.included === "boolean") patch.included = data.included;
+  if (data.body !== undefined) {
+    const parsed = proseMirrorDoc.safeParse(data.body);
+    if (!parsed.success) return { ok: false as const, error: "Invalid body" };
+    patch.body = parsed.data as Prisma.InputJsonValue;
+  }
+  const s = await prisma.proposalSection.update({
+    where: { id: sectionId },
+    data: patch,
+  });
+  revalidatePath(`/proposals/${s.proposalId}/edit`);
+  return { ok: true as const };
+}
+
+export async function reorderProposalSections(proposalId: string, orderedIds: string[]) {
+  await requireUser();
+  await prisma.$transaction(
+    orderedIds.map((id, i) =>
+      prisma.proposalSection.update({ where: { id }, data: { order: i } }),
+    ),
+  );
+  revalidatePath(`/proposals/${proposalId}/edit`);
+}
+
+export async function saveBoq(proposalId: string, rows: unknown) {
+  await requireUser();
+  const parsed = boqTableInput.safeParse(rows);
+  if (!parsed.success) {
+    return { ok: false as const, error: parsed.error.issues[0]?.message ?? "Invalid" };
+  }
+  await prisma.$transaction(async (tx) => {
+    await tx.boqItem.deleteMany({ where: { proposalId } });
+    if (parsed.data.length) {
+      await tx.boqItem.createMany({
+        data: parsed.data.map((r, i) => ({
+          proposalId,
+          order: i,
+          partNumber: r.partNumber || null,
+          description: r.description,
+          quantity: r.quantity,
+          unit: r.unit,
+          unitPrice: r.unitPrice,
+        })),
+      });
+    }
+  });
+  revalidatePath(`/proposals/${proposalId}/edit`);
+  return { ok: true as const };
+}
+
+export async function deleteProposal(id: string) {
+  await requireUser();
+  await prisma.proposal.delete({ where: { id } });
+  revalidatePath("/proposals");
+  redirect("/proposals");
+}
