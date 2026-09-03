@@ -1,0 +1,236 @@
+// Prisma schema for ProposalBuilder
+// Docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Auth (Auth.js / NextAuth + Prisma adapter)
+// ---------------------------------------------------------------------------
+
+enum Role {
+  ADMIN // manages products, section templates, brand profiles, users
+  AUTHOR // creates and edits proposals
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  passwordHash  String? // for credentials login; null when using OAuth only
+  role          Role      @default(AUTHOR)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts  Account[]
+  sessions  Session[]
+  proposals Proposal[] @relation("ProposalCreatedBy")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ---------------------------------------------------------------------------
+// Catalog: products and their reusable section templates
+// ---------------------------------------------------------------------------
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  category    String?
+  description String?
+  tags        String[] @default([])
+  archived    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  sections         SectionTemplate[]
+  proposalProducts ProposalProduct[]
+
+  @@index([category])
+}
+
+// One ordered chunk of proposal content owned by a Product.
+// `body` holds a TipTap / ProseMirror document as JSON. Placeholder tokens
+// such as {{customer.name}} or {{boq.table}} are resolved at generation time.
+model SectionTemplate {
+  id           String   @id @default(cuid())
+  productId    String
+  title        String
+  order        Int      @default(0)
+  body         Json
+  placeholders String[] @default([])
+  version      Int      @default(1)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, order])
+}
+
+// ---------------------------------------------------------------------------
+// Branding / formatting
+// ---------------------------------------------------------------------------
+
+model BrandProfile {
+  id             String   @id @default(cuid())
+  name           String
+  isDefault      Boolean  @default(false)
+  logoUrl        String?
+  primaryColor   String   @default("#1D4ED8")
+  secondaryColor String   @default("#0F172A")
+  fontFamily     String   @default("Inter")
+  coverLayout    String   @default("standard") // standard | minimal | full-bleed
+  headerText     String?
+  footerText     String?
+  showPageNumbers Boolean @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  proposals Proposal[]
+}
+
+// ---------------------------------------------------------------------------
+// Customers
+// ---------------------------------------------------------------------------
+
+model Customer {
+  id        String   @id @default(cuid())
+  name      String
+  logoUrl   String?
+  website   String?
+  contacts  Json     @default("[]") // [{ name, title, email, phone }]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  proposals Proposal[]
+}
+
+// ---------------------------------------------------------------------------
+// Proposals
+// ---------------------------------------------------------------------------
+
+enum ProposalStatus {
+  DRAFT
+  IN_REVIEW
+  FINAL
+}
+
+model Proposal {
+  id             String         @id @default(cuid())
+  title          String
+  status         ProposalStatus @default(DRAFT)
+  proposalDate   DateTime       @default(now())
+  reference      String? // e.g. quote / opportunity number
+  customerId     String
+  brandProfileId String?
+  createdById    String
+  showPricing    Boolean        @default(true)
+  currency       String         @default("USD")
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  customer     Customer      @relation(fields: [customerId], references: [id])
+  brandProfile BrandProfile? @relation(fields: [brandProfileId], references: [id])
+  createdBy    User          @relation("ProposalCreatedBy", fields: [createdById], references: [id])
+
+  products ProposalProduct[]
+  sections ProposalSection[]
+  boqItems BoqItem[]
+
+  @@index([customerId])
+  @@index([status])
+}
+
+// Join row: which products were selected for a proposal, and in what order.
+model ProposalProduct {
+  id         String @id @default(cuid())
+  proposalId String
+  productId  String
+  order      Int    @default(0)
+
+  proposal Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  product  Product  @relation(fields: [productId], references: [id])
+
+  @@unique([proposalId, productId])
+  @@index([proposalId, order])
+}
+
+// A snapshot of a SectionTemplate taken when the proposal was generated.
+// Editable per-proposal without mutating the master template.
+model ProposalSection {
+  id                String  @id @default(cuid())
+  proposalId        String
+  sourceTemplateId  String?
+  sourceProductId   String?
+  title             String
+  order             Int     @default(0)
+  body              Json
+  included          Boolean @default(true)
+  edited            Boolean @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  proposal Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  @@index([proposalId, order])
+}
+
+// Bill of Quantities line item.
+model BoqItem {
+  id          String   @id @default(cuid())
+  proposalId  String
+  order       Int      @default(0)
+  partNumber  String?
+  description String
+  quantity    Decimal  @default(1) @db.Decimal(12, 2)
+  unit        String   @default("ea")
+  unitPrice   Decimal  @default(0) @db.Decimal(14, 2)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  proposal Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  @@index([proposalId, order])
+}
