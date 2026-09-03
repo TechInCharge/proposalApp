@@ -4,7 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui";
 
 export default async function DashboardPage() {
-  await requireUser();
+  const session = await requireUser();
+  const isAdmin = session.user.role === "ADMIN";
 
   const [proposals, products, customers] = await Promise.all([
     prisma.proposal.count(),
@@ -20,8 +21,8 @@ export default async function DashboardPage() {
       />
       <section className="grid grid-cols-3 gap-4">
         <Card label="Proposals" value={proposals} href="/proposals" />
-        <Card label="Products" value={products} href="/products" />
         <Card label="Customers" value={customers} href="/customers" />
+        {isAdmin && <Card label="Products" value={products} href="/products" />}
       </section>
     </>
   );

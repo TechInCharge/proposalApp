@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Input } from "@/components/ui";
-import { saveBoq } from "@/server/proposals";
+import { saveBoq, parseBoqUpload } from "@/server/proposals";
 import type { WorkspaceBoqItem } from "./types";
 
 const EMPTY: WorkspaceBoqItem = {
@@ -29,10 +29,35 @@ export function BoqPanel({
   const [pending, start] = useTransition();
   const [rows, setRows] = useState<WorkspaceBoqItem[]>(items);
   const [saved, setSaved] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   function set(i: number, patch: Partial<WorkspaceBoqItem>) {
     setRows((r) => r.map((row, idx) => (idx === i ? { ...row, ...patch } : row)));
     setSaved(false);
+  }
+
+  function importFile(file: File) {
+    setImportError(null);
+    setNotice(null);
+    const fd = new FormData();
+    fd.set("file", file);
+    start(async () => {
+      const res = await parseBoqUpload(fd);
+      if (!res.ok) {
+        setImportError(res.error);
+        return;
+      }
+      const incoming = res.rows as WorkspaceBoqItem[];
+      setRows((r) => [...r, ...incoming]);
+      setSaved(false);
+      setNotice(
+        `Added ${incoming.length} row${incoming.length === 1 ? "" : "s"}` +
+          (res.skipped ? `, skipped ${res.skipped}` : "") +
+          ". Review, then Save BoQ.",
+      );
+    });
   }
 
   const total = rows.reduce((s, r) => s + r.quantity * r.unitPrice, 0);
@@ -134,15 +159,39 @@ export function BoqPanel({
         </table>
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Button variant="secondary" onClick={() => setRows((r) => [...r, { ...EMPTY }])}>
           Add row
         </Button>
+        <Button
+          variant="secondary"
+          onClick={() => fileRef.current?.click()}
+          disabled={pending}
+        >
+          Import .xlsx / .csv
+        </Button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".xlsx,.csv"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) importFile(f);
+            e.target.value = "";
+          }}
+        />
         <Button onClick={save} disabled={pending}>
           {pending ? "Saving…" : "Save BoQ"}
         </Button>
         {saved && <span className="self-center text-sm text-green-600">Saved</span>}
       </div>
+      {notice && <p className="text-sm text-slate-600">{notice}</p>}
+      {importError && <p className="text-sm text-red-600">{importError}</p>}
+      <p className="text-xs text-slate-400">
+        Import expects a header row with a <strong>Description</strong> column;
+        Part No., Qty, Unit and Unit Price are matched by common aliases.
+      </p>
     </div>
   );
 }

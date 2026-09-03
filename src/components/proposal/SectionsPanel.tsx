@@ -7,6 +7,7 @@ import { SectionEditor } from "@/components/SectionEditor";
 import {
   updateProposalSection,
   reorderProposalSections,
+  refreshProposalSections,
 } from "@/server/proposals";
 import type { WorkspaceSection } from "./types";
 
@@ -22,13 +23,46 @@ export function SectionsPanel({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftTitle, setDraftTitle] = useState("");
   const [draftBody, setDraftBody] = useState<unknown>(null);
+  const [refreshNote, setRefreshNote] = useState<string | null>(null);
+
+  function refresh() {
+    setRefreshNote(null);
+    start(async () => {
+      const res = await refreshProposalSections(proposalId);
+      if (!res.ok) {
+        setRefreshNote(res.error);
+        return;
+      }
+      const parts = [
+        `${res.updated} updated`,
+        `${res.added} added`,
+        `${res.skippedEdited} kept (edited)`,
+      ];
+      if (res.orphaned) parts.push(`${res.orphaned} no longer in any template`);
+      setRefreshNote(parts.join(", "));
+      router.refresh();
+    });
+  }
+
+  const header = (
+    <div className="flex items-center justify-between">
+      <h2 className="text-lg font-semibold">Sections</h2>
+      <Button variant="secondary" onClick={refresh} disabled={pending}>
+        Refresh from templates
+      </Button>
+    </div>
+  );
 
   if (sections.length === 0) {
     return (
-      <p className="text-sm text-slate-500">
-        Select products on the <strong>Products</strong> tab to pull in their
-        section templates.
-      </p>
+      <div className="grid gap-3">
+        {header}
+        <p className="text-sm text-slate-500">
+          Select products on the <strong>Products</strong> tab to pull in their
+          section templates, then Refresh if templates changed afterwards.
+        </p>
+        {refreshNote && <p className="text-sm text-slate-600">{refreshNote}</p>}
+      </div>
     );
   }
 
@@ -73,6 +107,8 @@ export function SectionsPanel({
 
   return (
     <div className="grid gap-3">
+      {header}
+      {refreshNote && <p className="text-sm text-slate-600">{refreshNote}</p>}
       {sections.map((s, i) => (
         <Card key={s.id} className="grid gap-2">
           <div className="flex items-center justify-between gap-2">

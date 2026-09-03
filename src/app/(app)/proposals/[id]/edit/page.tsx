@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
 import { PageHeader, LinkButton } from "@/components/ui";
 import { ProposalWorkspace } from "@/components/proposal/ProposalWorkspace";
+import { ProposalActions } from "@/components/proposal/ProposalActions";
 
 export default async function EditProposalPage({
   params,
@@ -41,9 +42,12 @@ export default async function EditProposalPage({
           .toLowerCase()
           .replace("_", " ")}`}
         actions={
-          <LinkButton href="/proposals" variant="secondary">
-            Back
-          </LinkButton>
+          <>
+            <ProposalActions proposalId={proposal.id} />
+            <LinkButton href="/proposals" variant="secondary">
+              Back
+            </LinkButton>
+          </>
         }
       />
       <ProposalWorkspace
