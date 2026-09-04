@@ -1,19 +1,26 @@
-import { generateHTML } from "@tiptap/html";
+// Use the Node/server entry: the default "@tiptap/html" export requires a real
+// browser `window` and throws in a server runtime (which silently dropped every
+// section body when the error was swallowed). The server build renders via
+// happy-dom and works under `next` server actions, standalone scripts and tests.
+import { generateHTML } from "@tiptap/html/server";
 import StarterKit from "@tiptap/starter-kit";
 
 export const editorExtensions = [StarterKit];
 
 const EMPTY_DOC = { type: "doc", content: [{ type: "paragraph" }] };
 
-/** ProseMirror JSON -> HTML string. Safe for unknown / empty input. */
+function isProseMirrorDoc(v: unknown): v is object {
+  return !!v && typeof v === "object" && (v as { type?: string }).type === "doc";
+}
+
+/** ProseMirror JSON -> HTML string. Empty/blank input renders as an empty paragraph. */
 export function docToHtml(doc: unknown): string {
+  const value = isProseMirrorDoc(doc) ? doc : EMPTY_DOC;
   try {
-    const value =
-      doc && typeof doc === "object" && (doc as { type?: string }).type === "doc"
-        ? doc
-        : EMPTY_DOC;
     return generateHTML(value as object, editorExtensions);
-  } catch {
-    return "";
+  } catch (err) {
+    // A genuinely malformed body: surface it rather than dropping the section.
+    console.error("docToHtml failed to render section body:", err);
+    return `<p><em>[section content could not be rendered]</em></p>`;
   }
 }

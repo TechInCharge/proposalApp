@@ -24,6 +24,10 @@
 .DS_Store
 *.pem
 
+# cloud-sync (iCloud/Dropbox/OneDrive) conflicted-copy duplicates
+* [0-9].*
+*conflicted copy*
+
 # debug
 npm-debug.log*
 yarn-debug.log*
