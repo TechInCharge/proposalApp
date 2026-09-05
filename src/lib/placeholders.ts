@@ -97,6 +97,10 @@ export function buildContext(args: {
   proposalTitle: string;
   proposalDate: Date;
   reference?: string | null;
+  contactName?: string | null;
+  contactTitle?: string | null;
+  contactEmail?: string | null;
+  contactPhone?: string | null;
 }): PlaceholderContext {
   return {
     customer: {
@@ -107,6 +111,12 @@ export function buildContext(args: {
       title: args.proposalTitle,
       date: args.proposalDate.toISOString().slice(0, 10),
       reference: args.reference ?? "",
+    },
+    contact: {
+      name: args.contactName ?? "",
+      title: args.contactTitle ?? "",
+      email: args.contactEmail ?? "",
+      phone: args.contactPhone ?? "",
     },
   };
 }

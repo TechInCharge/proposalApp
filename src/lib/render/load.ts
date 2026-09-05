@@ -19,6 +19,10 @@ export async function loadAndAssemble(
       reference: proposal.reference,
       showPricing: proposal.showPricing,
       currency: proposal.currency,
+      contactName: proposal.contactName,
+      contactTitle: proposal.contactTitle,
+      contactEmail: proposal.contactEmail,
+      contactPhone: proposal.contactPhone,
     },
     customer: {
       name: proposal.customer.name,

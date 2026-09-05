@@ -13,6 +13,22 @@ import {
 } from "@/lib/validators";
 import type { ProposalStatus } from "@prisma/client";
 
+function proposalWriteData(parsed: ProposalInput) {
+  return {
+    title: parsed.title,
+    customerId: parsed.customerId,
+    brandProfileId: parsed.brandProfileId || null,
+    proposalDate: parsed.proposalDate,
+    reference: parsed.reference || null,
+    showPricing: parsed.showPricing,
+    currency: parsed.currency,
+    contactName: parsed.contactName || null,
+    contactTitle: parsed.contactTitle || null,
+    contactEmail: parsed.contactEmail || null,
+    contactPhone: parsed.contactPhone || null,
+  };
+}
+
 export async function createProposal(
   raw: ProposalInput,
 ): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
@@ -22,16 +38,7 @@ export async function createProposal(
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
   const p = await prisma.proposal.create({
-    data: {
-      title: parsed.data.title,
-      customerId: parsed.data.customerId,
-      brandProfileId: parsed.data.brandProfileId || null,
-      proposalDate: parsed.data.proposalDate,
-      reference: parsed.data.reference || null,
-      showPricing: parsed.data.showPricing,
-      currency: parsed.data.currency,
-      createdById: session.user.id,
-    },
+    data: { ...proposalWriteData(parsed.data), createdById: session.user.id },
   });
   redirect(`/proposals/${p.id}/edit`);
 }
@@ -44,15 +51,7 @@ export async function updateProposalDetails(id: string, raw: ProposalInput) {
   }
   await prisma.proposal.update({
     where: { id },
-    data: {
-      title: parsed.data.title,
-      customerId: parsed.data.customerId,
-      brandProfileId: parsed.data.brandProfileId || null,
-      proposalDate: parsed.data.proposalDate,
-      reference: parsed.data.reference || null,
-      showPricing: parsed.data.showPricing,
-      currency: parsed.data.currency,
-    },
+    data: proposalWriteData(parsed.data),
   });
   revalidatePath(`/proposals/${id}/edit`);
   return { ok: true as const };
@@ -312,6 +311,10 @@ export async function duplicateProposal(
       reference: source.reference,
       showPricing: source.showPricing,
       currency: source.currency,
+      contactName: source.contactName,
+      contactTitle: source.contactTitle,
+      contactEmail: source.contactEmail,
+      contactPhone: source.contactPhone,
       createdById: session.user.id,
       products: {
         create: source.products.map((p) => ({

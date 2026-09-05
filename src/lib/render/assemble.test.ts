@@ -16,6 +16,10 @@ function baseInput(overrides: Partial<AssembleInput> = {}): AssembleInput {
       reference: "OPP-1",
       showPricing: true,
       currency: "USD",
+      contactName: null,
+      contactTitle: null,
+      contactEmail: null,
+      contactPhone: null,
     },
     customer: { name: "Acme Co.", website: null, logoUrl: null },
     brand: DEFAULT_BRAND,
@@ -79,5 +83,25 @@ describe("assembleProposalHtml", () => {
       baseInput({ sections: [{ id: "s1", title: "X", body: doc("{{customer.vatId}}") }] }),
     );
     expect(missingTokens).toContain("customer.vatId");
+  });
+
+  it("shows an Attn: line on the cover when a contact is set, and resolves {{contact.*}}", async () => {
+    const { html } = await assembleProposalHtml(
+      baseInput({
+        proposal: {
+          ...baseInput().proposal,
+          contactName: "Jane Doe",
+          contactTitle: "IT Director",
+        },
+        sections: [{ id: "s1", title: "X", body: doc("Contact: {{contact.name}}") }],
+      }),
+    );
+    expect(html).toContain("Attn:</strong> Jane Doe, IT Director");
+    expect(html).toContain("Contact: Jane Doe");
+  });
+
+  it("omits the Attn: line when no contact is set", async () => {
+    const { html } = await assembleProposalHtml(baseInput());
+    expect(html).not.toContain("Attn:");
   });
 });

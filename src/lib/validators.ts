@@ -58,6 +58,10 @@ export const proposalInput = z.object({
   reference: z.string().max(120).optional().or(z.literal("")),
   showPricing: z.boolean().default(false),
   currency: z.string().length(3).default("USD"),
+  contactName: z.string().max(200).optional().or(z.literal("")),
+  contactTitle: z.string().max(200).optional().or(z.literal("")),
+  contactEmail: z.string().max(200).optional().or(z.literal("")),
+  contactPhone: z.string().max(60).optional().or(z.literal("")),
 });
 export type ProposalInput = z.infer<typeof proposalInput>;
 

@@ -169,6 +169,14 @@ model Proposal {
   showPricing    Boolean        @default(false) // technical proposals default to no pricing; a commercial quote is a separate document
   currency       String         @default("USD")
 
+  // Snapshot of a Customer contact picked for this proposal (not a live
+  // reference — editing/removing the customer's contact later does not
+  // change proposals that already picked it).
+  contactName  String?
+  contactTitle String?
+  contactEmail String?
+  contactPhone String?
+
   // Last generated artifacts
   pdfUrl      String?
   docxUrl     String?

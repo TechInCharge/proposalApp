@@ -111,6 +111,10 @@ function DetailsPanel({
     reference: proposal.reference,
     showPricing: proposal.showPricing,
     currency: proposal.currency,
+    contactName: proposal.contactName,
+    contactTitle: proposal.contactTitle,
+    contactEmail: proposal.contactEmail,
+    contactPhone: proposal.contactPhone,
   });
   const set = (patch: Partial<typeof f>) => {
     setF((p) => ({ ...p, ...patch }));
@@ -186,6 +190,41 @@ function DetailsPanel({
           />
         </Field>
       </div>
+
+      <div className="border-t border-slate-200 pt-3">
+        <span className="text-sm font-medium text-slate-700">Contact (optional)</span>
+        <p className="mb-2 text-xs text-slate-400">
+          Shown as &ldquo;Attn:&rdquo; on the cover page and available as{" "}
+          <code>{"{{contact.name}}"}</code> etc. in section text.
+        </p>
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="Name">
+            <Input
+              value={f.contactName}
+              onChange={(e) => set({ contactName: e.target.value })}
+            />
+          </Field>
+          <Field label="Title">
+            <Input
+              value={f.contactTitle}
+              onChange={(e) => set({ contactTitle: e.target.value })}
+            />
+          </Field>
+          <Field label="Email">
+            <Input
+              value={f.contactEmail}
+              onChange={(e) => set({ contactEmail: e.target.value })}
+            />
+          </Field>
+          <Field label="Phone">
+            <Input
+              value={f.contactPhone}
+              onChange={(e) => set({ contactPhone: e.target.value })}
+            />
+          </Field>
+        </div>
+      </div>
+
       <div className="grid grid-cols-2 gap-4">
         <label className="flex items-center gap-2 text-sm">
           <input

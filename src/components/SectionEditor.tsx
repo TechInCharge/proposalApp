@@ -10,6 +10,10 @@ const PLACEHOLDERS = [
   "proposal.title",
   "proposal.date",
   "proposal.reference",
+  "contact.name",
+  "contact.title",
+  "contact.email",
+  "contact.phone",
   "boq.table",
 ];
 

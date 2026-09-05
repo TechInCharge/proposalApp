@@ -9,6 +9,10 @@ export interface WorkspaceProposal {
   reference: string;
   showPricing: boolean;
   currency: string;
+  contactName: string;
+  contactTitle: string;
+  contactEmail: string;
+  contactPhone: string;
   status: ProposalStatus;
   generatedAt: string | null;
   pdfUrl: string | null;

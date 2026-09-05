@@ -9,6 +9,10 @@ export interface AssembleInput {
     reference: string | null;
     showPricing: boolean;
     currency: string;
+    contactName: string | null;
+    contactTitle: string | null;
+    contactEmail: string | null;
+    contactPhone: string | null;
   };
   customer: { name: string; website: string | null; logoUrl: string | null };
   brand: {
@@ -110,6 +114,10 @@ export async function assembleProposalHtml(
     proposalTitle: input.proposal.title,
     proposalDate: input.proposal.proposalDate,
     reference: input.proposal.reference,
+    contactName: input.proposal.contactName,
+    contactTitle: input.proposal.contactTitle,
+    contactEmail: input.proposal.contactEmail,
+    contactPhone: input.proposal.contactPhone,
   });
 
   const missing = new Set<string>();
@@ -178,6 +186,13 @@ export async function assembleProposalHtml(
     </div>
     <div class="meta">
       <div><strong>Prepared for:</strong> ${esc(input.customer.name)}</div>
+      ${
+        input.proposal.contactName
+          ? `<div><strong>Attn:</strong> ${esc(input.proposal.contactName)}${
+              input.proposal.contactTitle ? `, ${esc(input.proposal.contactTitle)}` : ""
+            }</div>`
+          : ""
+      }
       ${input.proposal.reference ? `<div><strong>Reference:</strong> ${esc(input.proposal.reference)}</div>` : ""}
       <div><strong>Date:</strong> ${dateStr}</div>
     </div>
