@@ -6,6 +6,15 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **seclore.com-inspired theme**, applied to both the platform UI and
+  generated proposals: Inter typeface, an indigo/violet brand accent
+  (`#5636CE`), near-black headings, light-gray rounded cards. New
+  `BrandProfile` colour defaults. Generated PDFs now embed the real Inter
+  font (base64 variable woff2) instead of silently falling back to Arial —
+  Puppeteer waits on `document.fonts.ready` before printing.
+
 ### Changed
 
 - **BoQ simplified to Part Number, Description, Quantity only.** Removed
