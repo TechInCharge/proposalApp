@@ -1,6 +1,7 @@
 import { buildContext, resolvePlaceholdersInHtml } from "@/lib/placeholders";
 import { sectionBodyToHtml } from "@/lib/render/section-html";
 import { sanitizeContentImages } from "@/lib/render/images";
+import { pickCoverTemplate, resolveCoverHtml } from "@/lib/render/cover";
 import { toDataUri } from "@/lib/storage";
 import { interFontFaceCss } from "@/lib/render/fonts";
 
@@ -13,6 +14,8 @@ export interface AssembleInput {
     contactTitle: string | null;
     contactEmail: string | null;
     contactPhone: string | null;
+    /** Per-proposal cover override (HTML string) — beats the brand cover. */
+    coverTemplate?: unknown;
   };
   customer: { name: string; website: string | null; logoUrl: string | null };
   brand: {
@@ -21,6 +24,8 @@ export interface AssembleInput {
     secondaryColor: string;
     fontFamily: string;
     coverLayout: string;
+    /** Custom cover template (HTML string) or null for the built-in cover. */
+    coverTemplate?: unknown;
     headerText: string | null;
     footerText: string | null;
     showPageNumbers: boolean;
@@ -156,6 +161,51 @@ export async function assembleProposalHtml(
   const custLogo = await toDataUri(input.customer.logoUrl);
   const dateStr = input.proposal.proposalDate.toISOString().slice(0, 10);
 
+  // Cover: a custom template (proposal override, else brand profile) or the
+  // built-in auto cover.
+  const coverTpl = pickCoverTemplate(
+    input.proposal.coverTemplate,
+    input.brand.coverTemplate,
+  );
+  let coverInner: string;
+  if (coverTpl) {
+    const { html: ch, missing: cm } = resolveCoverHtml(coverTpl, {
+      title: input.proposal.title,
+      proposalDate: input.proposal.proposalDate,
+      reference: input.proposal.reference,
+      contactName: input.proposal.contactName,
+      contactTitle: input.proposal.contactTitle,
+      contactEmail: input.proposal.contactEmail,
+      contactPhone: input.proposal.contactPhone,
+      customerName: input.customer.name,
+      customerWebsite: input.customer.website,
+      brandLogoDataUri: brandLogo,
+      customerLogoDataUri: custLogo,
+    });
+    cm.forEach((t) => missing.add(t));
+    coverInner = `<div class="cover-body">${await inlineFileImages(ch)}</div>`;
+  } else {
+    coverInner = `<div class="accent-bar"></div>
+    <div class="logos">
+      ${custLogo ? `<img src="${custLogo}" alt="customer logo">` : ""}
+      ${brandLogo ? `<img src="${brandLogo}" alt="logo">` : ""}
+    </div>
+    <div class="eyebrow">Technical Proposal</div>
+    <h1>${esc(input.proposal.title)}</h1>
+    <div class="meta">
+      <div><strong>Prepared for:</strong> ${esc(input.customer.name)}</div>
+      ${
+        input.proposal.contactName
+          ? `<div><strong>Attn:</strong> ${esc(input.proposal.contactName)}${
+              input.proposal.contactTitle ? `, ${esc(input.proposal.contactTitle)}` : ""
+            }</div>`
+          : ""
+      }
+      ${input.proposal.reference ? `<div><strong>Reference:</strong> ${esc(input.proposal.reference)}</div>` : ""}
+      <div><strong>Date:</strong> ${dateStr}</div>
+    </div>`;
+  }
+
   const usesInter = input.brand.fontFamily.trim().toLowerCase() === "inter";
   const fontFaceCss = usesInter ? interFontFaceCss() : "";
 
@@ -180,6 +230,26 @@ export async function assembleProposalHtml(
       letter-spacing: -0.02em; }
     .cover .meta { color: #52525b; margin-top: 28px; font-size: 12.5px; }
     .cover .meta div { margin-bottom: 4px; }
+    /* custom cover template content */
+    .cover-body { color: var(--secondary); font-size: 13px; }
+    .cover-body h1 { font-size: 34px; font-weight: 700; color: var(--secondary); margin: 8px 0; letter-spacing: -0.02em; }
+    .cover-body h2 { font-size: 22px; font-weight: 700; color: var(--secondary); margin: 8px 0; }
+    .cover-body h3, .cover-body h4 { color: var(--secondary); font-weight: 700; margin: 8px 0 4px; }
+    .cover-body p { margin: 6px 0; }
+    .cover-body a { color: var(--primary); }
+    .cover-body img { max-width: 100%; height: auto; }
+    .cover-body figure { margin: 10px 0; }
+    .cover-body figure.image { text-align: center; }
+    .cover-body figure.image.image-style-align-left { float: left; margin: 4px 16px 8px 0; }
+    .cover-body figure.image.image-style-align-right { float: right; margin: 4px 0 8px 16px; }
+    .cover-body table { border-collapse: collapse; width: 100%; }
+    .cover-body td, .cover-body th { padding: 4px 8px; vertical-align: top; }
+    .cover-body mark { border-radius: 3px; padding: 0.05em 0.15em; }
+    .cover-body .marker-yellow { background: #fdfd77; } .cover-body .marker-green { background: #7ee686; }
+    .cover-body .marker-pink { background: #fc7899; } .cover-body .marker-blue { background: #72cdfd; }
+    .cover-body .pen-red { color: #e71313; } .cover-body .pen-green { color: #128a00; }
+    .cover-body .text-tiny { font-size: 0.7em; } .cover-body .text-small { font-size: 0.85em; }
+    .cover-body .text-big { font-size: 1.4em; } .cover-body .text-huge { font-size: 1.8em; }
     .content { padding: 36px 48px; }
     .doc-section { page-break-inside: avoid; margin-bottom: 18px; background: #fafafa;
       border-radius: 12px; padding: 18px 22px; }
@@ -235,25 +305,7 @@ export async function assembleProposalHtml(
     .doc-section figure.table > figcaption { font-size: 10px; color: #64748b; margin-bottom: 4px; caption-side: top; }
   </style></head><body>
   <div class="cover">
-    <div class="accent-bar"></div>
-    <div class="logos">
-      ${custLogo ? `<img src="${custLogo}" alt="customer logo">` : ""}
-      ${brandLogo ? `<img src="${brandLogo}" alt="logo">` : ""}
-    </div>
-    <div class="eyebrow">Technical Proposal</div>
-    <h1>${esc(input.proposal.title)}</h1>
-    <div class="meta">
-      <div><strong>Prepared for:</strong> ${esc(input.customer.name)}</div>
-      ${
-        input.proposal.contactName
-          ? `<div><strong>Attn:</strong> ${esc(input.proposal.contactName)}${
-              input.proposal.contactTitle ? `, ${esc(input.proposal.contactTitle)}` : ""
-            }</div>`
-          : ""
-      }
-      ${input.proposal.reference ? `<div><strong>Reference:</strong> ${esc(input.proposal.reference)}</div>` : ""}
-      <div><strong>Date:</strong> ${dateStr}</div>
-    </div>
+    ${coverInner}
   </div>
   <div class="content">
     ${sectionHtml}

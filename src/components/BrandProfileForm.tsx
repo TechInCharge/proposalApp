@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Field, Input } from "@/components/ui";
+import { CoverEditor } from "@/components/CoverEditor";
 import {
   saveBrandProfile,
   createBrandProfileAndRedirect,
@@ -16,6 +17,7 @@ type Profile = {
   secondaryColor: string;
   fontFamily: string;
   coverLayout: string;
+  coverTemplate: string;
   headerText: string | null;
   footerText: string | null;
   showPageNumbers: boolean;
@@ -35,6 +37,7 @@ export function BrandProfileForm({ profile }: { profile?: Profile }) {
       | "standard"
       | "minimal"
       | "full-bleed",
+    coverTemplate: profile?.coverTemplate ?? "",
     headerText: profile?.headerText ?? "",
     footerText: profile?.footerText ?? "",
     showPageNumbers: profile?.showPageNumbers ?? true,
@@ -94,6 +97,19 @@ export function BrandProfileForm({ profile }: { profile?: Profile }) {
           <option value="full-bleed">Full bleed</option>
         </select>
       </Field>
+      <div className="grid gap-1 text-sm">
+        <span className="font-medium text-slate-700">Cover page</span>
+        <span className="text-xs text-slate-400">
+          Design the cover freely with text, colours, images and layout. Leave
+          empty to use the built-in cover. Renders in both PDF and DOCX.
+        </span>
+        <CoverEditor
+          value={f.coverTemplate}
+          onChange={(html) => set({ coverTemplate: html })}
+          fallbackNote="Empty — the built-in auto cover is used"
+        />
+      </div>
+
       <Field label="Header text">
         <Input
           value={f.headerText}

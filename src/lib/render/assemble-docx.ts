@@ -1,6 +1,7 @@
 import { parse, type HTMLElement } from "node-html-parser";
 import { buildContext, resolvePlaceholdersInHtml } from "@/lib/placeholders";
 import { sectionBodyToHtml } from "@/lib/render/section-html";
+import { pickCoverTemplate, resolveCoverHtml } from "@/lib/render/cover";
 import { toDataUri } from "@/lib/storage";
 import {
   esc,
@@ -245,22 +246,46 @@ export async function assembleProposalDocxHtml(
   const metaRow = (label: string, value: string) =>
     `<p style="color:#52525b;font-size:10.5pt;margin:2pt 0"><strong>${label}</strong> ${esc(value)}</p>`;
 
-  const cover =
-    (logos ? `<p style="margin:0 0 16pt">${logos}</p>` : "") +
-    `<p style="color:${brand.primary};font-weight:bold;letter-spacing:1.5px;text-transform:uppercase;font-size:9pt;margin:0 0 6pt">Technical Proposal</p>` +
-    `<h1 style="color:${brand.secondary};font-size:24pt;font-weight:bold;margin:0 0 12pt">${esc(input.proposal.title)}</h1>` +
-    metaRow("Prepared for:", input.customer.name) +
-    (input.proposal.contactName
-      ? metaRow(
-          "Attn:",
-          input.proposal.contactTitle
-            ? `${input.proposal.contactName}, ${input.proposal.contactTitle}`
-            : input.proposal.contactName,
-        )
-      : "") +
-    (input.proposal.reference ? metaRow("Reference:", input.proposal.reference) : "") +
-    metaRow("Date:", dateStr) +
-    `<div style="page-break-after:always">&nbsp;</div>`;
+  const pageBreak = `<div style="page-break-after:always">&nbsp;</div>`;
+  const coverTpl = pickCoverTemplate(
+    input.proposal.coverTemplate,
+    input.brand.coverTemplate,
+  );
+  let cover: string;
+  if (coverTpl) {
+    const { html: ch, missing: cm } = resolveCoverHtml(coverTpl, {
+      title: input.proposal.title,
+      proposalDate: input.proposal.proposalDate,
+      reference: input.proposal.reference,
+      contactName: input.proposal.contactName,
+      contactTitle: input.proposal.contactTitle,
+      contactEmail: input.proposal.contactEmail,
+      contactPhone: input.proposal.contactPhone,
+      customerName: input.customer.name,
+      customerWebsite: input.customer.website,
+      brandLogoDataUri: brandLogo,
+      customerLogoDataUri: custLogo,
+    });
+    cm.forEach((t) => missing.add(t));
+    cover = (await inlineFileImages(docxifySectionHtml(ch, brand))) + pageBreak;
+  } else {
+    cover =
+      (logos ? `<p style="margin:0 0 16pt">${logos}</p>` : "") +
+      `<p style="color:${brand.primary};font-weight:bold;letter-spacing:1.5px;text-transform:uppercase;font-size:9pt;margin:0 0 6pt">Technical Proposal</p>` +
+      `<h1 style="color:${brand.secondary};font-size:24pt;font-weight:bold;margin:0 0 12pt">${esc(input.proposal.title)}</h1>` +
+      metaRow("Prepared for:", input.customer.name) +
+      (input.proposal.contactName
+        ? metaRow(
+            "Attn:",
+            input.proposal.contactTitle
+              ? `${input.proposal.contactName}, ${input.proposal.contactTitle}`
+              : input.proposal.contactName,
+          )
+        : "") +
+      (input.proposal.reference ? metaRow("Reference:", input.proposal.reference) : "") +
+      metaRow("Date:", dateStr) +
+      pageBreak;
+  }
 
   const html =
     `<!doctype html><html><head><meta charset="utf-8"></head>` +

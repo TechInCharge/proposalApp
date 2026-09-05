@@ -82,8 +82,13 @@
 
 ## Phase 3
 
-- [ ] Cover-page designer
+- [x] Cover-page designer — rich cover template on the BrandProfile (+ a
+      per-proposal override), `{{placeholders}}` incl. `{{customer.logo}}` /
+      `{{brand.logo}}`, rendered in PDF + DOCX via `src/lib/render/cover.ts`.
+      Empty template ⇒ the built-in auto cover.
 - [ ] Drag-and-drop section ordering across products
+- [ ] Wire the `coverLayout` enum (standard/minimal/full-bleed) into the auto
+      cover, or retire it now that custom templates exist.
 
 ## Going live
 

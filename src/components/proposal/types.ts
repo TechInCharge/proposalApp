@@ -11,6 +11,7 @@ export interface WorkspaceProposal {
   contactTitle: string;
   contactEmail: string;
   contactPhone: string;
+  coverTemplate: string;
   status: ProposalStatus;
   generatedAt: string | null;
   pdfUrl: string | null;

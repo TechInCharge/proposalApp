@@ -67,6 +67,8 @@ export default async function EditProposalPage({
           contactTitle: proposal.contactTitle ?? "",
           contactEmail: proposal.contactEmail ?? "",
           contactPhone: proposal.contactPhone ?? "",
+          coverTemplate:
+            typeof proposal.coverTemplate === "string" ? proposal.coverTemplate : "",
           status: proposal.status,
           generatedAt: proposal.generatedAt?.toISOString() ?? null,
           pdfUrl: proposal.pdfUrl,

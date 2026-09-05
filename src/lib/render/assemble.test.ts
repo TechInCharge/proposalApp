@@ -85,6 +85,32 @@ describe("assembleProposalHtml", () => {
     expect(html).not.toContain("Attn:");
   });
 
+  it("uses a custom cover template from the brand profile", async () => {
+    const { html } = await assembleProposalHtml(
+      baseInput({
+        brand: {
+          ...baseInput().brand,
+          coverTemplate: "<h1>{{proposal.title}}</h1><p>Client: {{customer.name}}</p>",
+        },
+      }),
+    );
+    expect(html).toContain('<div class="cover-body">');
+    expect(html).toContain("<h1>Firewall Refresh</h1>");
+    expect(html).toContain("Client: Acme Co.");
+    expect(html).not.toContain('class="eyebrow"'); // auto cover markup gone
+  });
+
+  it("lets a per-proposal cover override the brand cover", async () => {
+    const { html } = await assembleProposalHtml(
+      baseInput({
+        proposal: { ...baseInput().proposal, coverTemplate: "<h1>PROPOSAL COVER</h1>" },
+        brand: { ...baseInput().brand, coverTemplate: "<h1>BRAND COVER</h1>" },
+      }),
+    );
+    expect(html).toContain("PROPOSAL COVER");
+    expect(html).not.toContain("BRAND COVER");
+  });
+
   it("keeps rich CKEditor markup (tables, images, alignment, colour) and resolves tokens inside cells", async () => {
     const richBody = [
       '<h3 style="text-align:center;">Specs</h3>',

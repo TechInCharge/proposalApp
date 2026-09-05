@@ -38,6 +38,16 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- **Customisable cover page.** A brand profile can carry a rich cover template
+  (same editor as section templates) — lay out the cover freely with text,
+  fonts, colours, images, alignment and tables, using `{{placeholders}}` like
+  `{{proposal.title}}`, `{{customer.name}}`, `{{customer.logo}}`,
+  `{{brand.logo}}`, `{{proposal.date}}`, `{{contact.*}}`. An individual proposal
+  can override it on the Details tab. Empty = the built-in auto cover. Renders
+  in both PDF and DOCX; pasted images are sanitised and offloaded to storage
+  like section content. New `BrandProfile.coverTemplate` /
+  `Proposal.coverTemplate` (`Json?`), additive migration.
+
 - **Reusable BoQ library.** Items added to any proposal's Bill of Quantities
   are auto-saved to a shared library on Save. The BoQ tab has an **Add from
   library** picker (search by part number or description) so you pick an

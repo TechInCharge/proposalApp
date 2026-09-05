@@ -9,6 +9,7 @@ import {
   setProposalStatus,
 } from "@/server/proposals";
 import { parseDateInput } from "@/lib/date";
+import { CoverEditor } from "@/components/CoverEditor";
 import { SectionsPanel } from "./SectionsPanel";
 import { BoqPanel } from "./BoqPanel";
 import { GeneratePanel } from "./GeneratePanel";
@@ -114,6 +115,7 @@ function DetailsPanel({
     contactTitle: proposal.contactTitle,
     contactEmail: proposal.contactEmail,
     contactPhone: proposal.contactPhone,
+    coverTemplate: proposal.coverTemplate,
   });
   const set = (patch: Partial<typeof f>) => {
     setF((p) => ({ ...p, ...patch }));
@@ -222,6 +224,19 @@ function DetailsPanel({
             />
           </Field>
         </div>
+      </div>
+
+      <div className="border-t border-slate-200 pt-3">
+        <span className="text-sm font-medium text-slate-700">Cover page</span>
+        <p className="mb-2 text-xs text-slate-400">
+          Override the cover for this proposal only. Leave empty to use the
+          brand profile&rsquo;s cover.
+        </p>
+        <CoverEditor
+          value={f.coverTemplate}
+          onChange={(html) => set({ coverTemplate: html })}
+          fallbackNote="Empty — uses the brand profile cover"
+        />
       </div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}

@@ -38,6 +38,8 @@ export default async function BrandProfileDetailPage({
             secondaryColor: profile.secondaryColor,
             fontFamily: profile.fontFamily,
             coverLayout: profile.coverLayout,
+            coverTemplate:
+              typeof profile.coverTemplate === "string" ? profile.coverTemplate : "",
             headerText: profile.headerText,
             footerText: profile.footerText,
             showPageNumbers: profile.showPageNumbers,

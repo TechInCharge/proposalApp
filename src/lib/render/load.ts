@@ -28,6 +28,7 @@ export async function loadAndAssemble(
       contactTitle: proposal.contactTitle,
       contactEmail: proposal.contactEmail,
       contactPhone: proposal.contactPhone,
+      coverTemplate: proposal.coverTemplate,
     },
     customer: {
       name: proposal.customer.name,
@@ -41,6 +42,7 @@ export async function loadAndAssemble(
           secondaryColor: proposal.brandProfile.secondaryColor,
           fontFamily: proposal.brandProfile.fontFamily,
           coverLayout: proposal.brandProfile.coverLayout,
+          coverTemplate: proposal.brandProfile.coverTemplate,
           headerText: proposal.brandProfile.headerText,
           footerText: proposal.brandProfile.footerText,
           showPageNumbers: proposal.brandProfile.showPageNumbers,

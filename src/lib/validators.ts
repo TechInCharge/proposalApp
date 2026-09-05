@@ -51,6 +51,13 @@ export const customerInput = z.object({
 });
 export type CustomerInput = z.infer<typeof customerInput>;
 
+/** Optional CKEditor HTML for a custom cover — blank means "use the auto cover". */
+export const coverTemplateInput = z
+  .string()
+  .max(500_000, "Cover content is too large")
+  .transform((s) => s.trim())
+  .optional();
+
 export const brandProfileInput = z.object({
   name: z.string().min(1).max(120),
   isDefault: z.boolean().default(false),
@@ -59,6 +66,7 @@ export const brandProfileInput = z.object({
   secondaryColor: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Use #RRGGBB"),
   fontFamily: z.string().min(1).max(80),
   coverLayout: z.enum(["standard", "minimal", "full-bleed"]).default("standard"),
+  coverTemplate: coverTemplateInput,
   headerText: z.string().max(200).optional().or(z.literal("")),
   footerText: z.string().max(200).optional().or(z.literal("")),
   showPageNumbers: z.boolean().default(true),
@@ -75,6 +83,7 @@ export const proposalInput = z.object({
   contactTitle: z.string().max(200).optional().or(z.literal("")),
   contactEmail: z.string().max(200).optional().or(z.literal("")),
   contactPhone: z.string().max(60).optional().or(z.literal("")),
+  coverTemplate: coverTemplateInput,
 });
 export type ProposalInput = z.infer<typeof proposalInput>;
 

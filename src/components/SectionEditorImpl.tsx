@@ -64,7 +64,7 @@ import {
 import "ckeditor5/ckeditor5.css";
 import { legacyDocToHtml, isLegacyProseMirrorDoc } from "@/lib/legacy-doc";
 
-const PLACEHOLDERS = [
+const DEFAULT_PLACEHOLDERS = [
   "customer.name",
   "customer.website",
   "proposal.title",
@@ -76,6 +76,13 @@ const PLACEHOLDERS = [
   "contact.phone",
   "boq.table",
 ];
+
+const DEFAULT_HINT = (
+  <span className="text-xs text-slate-400">
+    Put <code>{"{{boq.table}}"}</code> on its own line to drop in the Bill of
+    Quantities table.
+  </span>
+);
 
 const editorConfig: EditorConfig = {
   licenseKey: "GPL",
@@ -240,9 +247,13 @@ function toHtml(value: unknown): string {
 export function SectionEditorImpl({
   value,
   onChange,
+  placeholders = DEFAULT_PLACEHOLDERS,
+  hint = DEFAULT_HINT,
 }: {
   value: unknown;
   onChange: (html: string) => void;
+  placeholders?: string[];
+  hint?: React.ReactNode;
 }) {
   const editorRef = useRef<Editor | null>(null);
   const initialData = useMemo(() => toHtml(value), [value]);
@@ -270,16 +281,13 @@ export function SectionEditorImpl({
           }}
         >
           <option value="">Insert placeholder…</option>
-          {PLACEHOLDERS.map((p) => (
+          {placeholders.map((p) => (
             <option key={p} value={p}>
               {`{{${p}}}`}
             </option>
           ))}
         </select>
-        <span className="text-xs text-slate-400">
-          Put <code>{"{{boq.table}}"}</code> on its own line to drop in the Bill
-          of Quantities table.
-        </span>
+        {hint}
       </div>
 
       {wasLegacy && (

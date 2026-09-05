@@ -122,6 +122,9 @@ model BrandProfile {
   secondaryColor String   @default("#1F2024")
   fontFamily     String   @default("Inter")
   coverLayout    String   @default("standard") // standard | minimal | full-bleed
+  // Optional custom cover: a CKEditor HTML string with {{placeholders}}.
+  // Null/empty => the built-in auto-generated cover is used.
+  coverTemplate  Json?
   headerText     String?
   footerText     String?
   showPageNumbers Boolean @default(true)
@@ -174,6 +177,10 @@ model Proposal {
   contactTitle String?
   contactEmail String?
   contactPhone String?
+
+  // Per-proposal cover override (CKEditor HTML + {{placeholders}}). Null =>
+  // fall back to the brand profile's cover, then the built-in auto cover.
+  coverTemplate Json?
 
   // Last generated artifacts
   pdfUrl      String?

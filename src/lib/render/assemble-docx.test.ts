@@ -105,6 +105,22 @@ describe("assembleProposalDocxHtml", () => {
     expect(html.match(/Bill of Quantities/g)).toBeNull(); // not also appended
   });
 
+  it("renders a custom cover template with inline styling and a page break", async () => {
+    const { html } = await assembleProposalDocxHtml(
+      baseInput({
+        brand: {
+          ...baseInput().brand,
+          coverTemplate: "<h1>{{proposal.title}}</h1><p>For {{customer.name}}</p>",
+        },
+      }),
+    );
+    expect(html).toMatch(/<h1 style="[^"]*color:/); // heading got inline colour
+    expect(html).toContain("Firewall Refresh");
+    expect(html).toContain("For Acme Co.");
+    expect(html).toContain("page-break-after:always");
+    expect(html).not.toContain("Technical Proposal"); // auto eyebrow gone
+  });
+
   it("appends a BoQ section when items exist but no token is used", async () => {
     const { html } = await assembleProposalDocxHtml(
       baseInput({ boqItems: [{ partNumber: "A", description: "Thing", quantity: 1 }] }),

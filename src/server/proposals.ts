@@ -15,7 +15,7 @@ import { captureBoqItems } from "@/server/boqCatalog";
 import { offloadDataUriImages } from "@/lib/render/images";
 import type { ProposalStatus } from "@prisma/client";
 
-function proposalWriteData(parsed: ProposalInput) {
+async function proposalWriteData(parsed: ProposalInput) {
   return {
     title: parsed.title,
     customerId: parsed.customerId,
@@ -26,6 +26,9 @@ function proposalWriteData(parsed: ProposalInput) {
     contactTitle: parsed.contactTitle || null,
     contactEmail: parsed.contactEmail || null,
     contactPhone: parsed.contactPhone || null,
+    coverTemplate: parsed.coverTemplate
+      ? ((await offloadDataUriImages(parsed.coverTemplate)) as Prisma.InputJsonValue)
+      : Prisma.DbNull,
   };
 }
 
@@ -38,7 +41,7 @@ export async function createProposal(
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
   const p = await prisma.proposal.create({
-    data: { ...proposalWriteData(parsed.data), createdById: session.user.id },
+    data: { ...(await proposalWriteData(parsed.data)), createdById: session.user.id },
   });
   redirect(`/proposals/${p.id}/edit`);
 }
@@ -51,7 +54,7 @@ export async function updateProposalDetails(id: string, raw: ProposalInput) {
   }
   await prisma.proposal.update({
     where: { id },
-    data: proposalWriteData(parsed.data),
+    data: await proposalWriteData(parsed.data),
   });
   revalidatePath(`/proposals/${id}/edit`);
   return { ok: true as const };
@@ -313,6 +316,10 @@ export async function duplicateProposal(
       contactTitle: source.contactTitle,
       contactEmail: source.contactEmail,
       contactPhone: source.contactPhone,
+      coverTemplate:
+        source.coverTemplate === null
+          ? Prisma.DbNull
+          : (source.coverTemplate as Prisma.InputJsonValue),
       createdById: session.user.id,
       products: {
         create: source.products.map((p) => ({
