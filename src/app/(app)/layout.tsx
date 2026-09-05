@@ -26,6 +26,7 @@ export default async function AppLayout({
             <NavLink href="/customers">Customers</NavLink>
             {isAdmin && <NavLink href="/products">Products</NavLink>}
             {isAdmin && <NavLink href="/brand-profiles">Branding</NavLink>}
+            {isAdmin && <NavLink href="/users">Users</NavLink>}
           </nav>
           <div className="flex items-center gap-3 text-sm text-slate-500">
             <span>

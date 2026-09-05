@@ -71,3 +71,21 @@ export const boqItemInput = z.object({
 export type BoqItemInput = z.infer<typeof boqItemInput>;
 
 export const boqTableInput = z.array(boqItemInput);
+
+const roleEnum = z.enum(["ADMIN", "AUTHOR"]);
+
+export const createUserInput = z.object({
+  name: z.string().max(200).optional().or(z.literal("")),
+  email: z.string().email("Enter a valid email"),
+  role: roleEnum,
+  password: z.string().min(8, "At least 8 characters"),
+});
+export type CreateUserInput = z.infer<typeof createUserInput>;
+
+export const updateUserInput = z.object({
+  name: z.string().max(200).optional().or(z.literal("")),
+  role: roleEnum,
+  // Blank = keep the current password.
+  password: z.union([z.string().min(8, "At least 8 characters"), z.literal("")]),
+});
+export type UpdateUserInput = z.infer<typeof updateUserInput>;
