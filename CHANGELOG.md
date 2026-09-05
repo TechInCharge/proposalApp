@@ -6,6 +6,18 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-09-05
+
+### Added
+
+- Deployment prep for Railway (and any similar host): `trustHost: true` in
+  Auth.js, `nixpacks.toml` for Puppeteer's Chromium runtime libraries,
+  `postinstall: prisma generate`, `start` now runs `prisma migrate deploy`
+  first, `PUPPETEER_EXECUTABLE_PATH` override, and a step-by-step deploy guide
+  in the README.
+
+## [0.7.0] - 2026-09-05
+
 ### Added
 
 - **User management** (ADMIN): create, edit, and delete accounts; set the

@@ -70,21 +70,22 @@
 - [ ] Cover-page designer
 - [ ] Drag-and-drop section ordering across products
 
-## Going live (not started)
+## Going live
 
-The app currently only runs locally (this laptop's Postgres + local disk for
-files). Whenever real deployment is next:
+Host chosen: **Railway** (persistent disk + normal Node process, so the app
+deploys as-is — no storage or Puppeteer rework needed, unlike a serverless
+host such as Vercel). See the "Deploy to Railway" section in the README for
+the exact dashboard steps.
 
-- [ ] Pick a host (Vercel, a VPS, your own server) — decides the two items below
-- [ ] Production Postgres (Neon, Supabase, RDS, or self-hosted)
-- [ ] File storage: local disk (`src/lib/storage.ts`) is fine on a persistent
-      server/container; a serverless host (e.g. Vercel functions) needs an
-      S3-equivalent instead, since local disk doesn't persist there
-- [ ] PDF generation on that host: Puppeteer works as-is on a normal
-      server/container; serverless needs `puppeteer-core` + `@sparticuz/chromium`
-- [ ] Real `AUTH_SECRET` (not the `.env.example` placeholder) and change the
-      seeded admin password
-- [ ] Database backup plan
+- [x] Deployment prep: `trustHost`, `nixpacks.toml` for Puppeteer's Chromium
+      deps, `postinstall`/`start` scripts run `prisma generate` /
+      `migrate deploy`, `PUPPETEER_EXECUTABLE_PATH` escape hatch (v0.8.0)
+- [ ] Actually create the Railway project + Postgres addon + volume (manual —
+      needs the user's Railway/GitHub login, see README)
+- [ ] Real `AUTH_SECRET` (not the `.env.example` placeholder) set in Railway
+- [ ] Change the seeded admin password (or replace it) after first deploy
+- [ ] Database backup plan (Railway's Postgres has point-in-time restore on
+      paid plans — confirm it's enabled)
 
 ## Not doing
 
