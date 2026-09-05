@@ -7,8 +7,6 @@ export interface WorkspaceProposal {
   brandProfileId: string | null;
   proposalDate: string; // yyyy-mm-dd
   reference: string;
-  showPricing: boolean;
-  currency: string;
   contactName: string;
   contactTitle: string;
   contactEmail: string;
@@ -32,8 +30,6 @@ export interface WorkspaceBoqItem {
   partNumber: string;
   description: string;
   quantity: number;
-  unit: string;
-  unitPrice: number;
 }
 
 export interface WorkspaceProduct {

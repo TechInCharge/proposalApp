@@ -10,8 +10,6 @@ const HEADER_ALIASES: Record<keyof BoqItemInput, string[]> = {
   partNumber: ["part number", "part no", "part", "part#", "sku", "item code", "code"],
   description: ["description", "desc", "item", "item description", "details"],
   quantity: ["quantity", "qty", "qnty", "count", "amount"],
-  unit: ["unit", "uom", "unit of measure", "units"],
-  unitPrice: ["unit price", "price", "unit cost", "cost", "rate", "unit rate"],
 };
 
 function normalise(s: unknown): string {
@@ -73,9 +71,8 @@ function rowsToItems(
     const candidate = {
       partNumber: map.partNumber !== undefined ? String(r[map.partNumber] ?? "").trim() : "",
       description,
-      quantity: map.quantity !== undefined ? toNumber(r[map.quantity]) : 1,
-      unit: map.unit !== undefined ? String(r[map.unit] ?? "ea").trim() || "ea" : "ea",
-      unitPrice: map.unitPrice !== undefined ? toNumber(r[map.unitPrice]) : 0,
+      quantity:
+        map.quantity !== undefined ? Math.round(toNumber(r[map.quantity])) || 1 : 1,
     };
     const parsed = boqItemInput.safeParse(candidate);
     if (parsed.success) out.push(parsed.data);

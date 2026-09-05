@@ -71,12 +71,7 @@ export function ProposalWorkspace(props: {
         <SectionsPanel proposalId={props.proposal.id} sections={props.sections} />
       )}
       {tab === "BoQ" && (
-        <BoqPanel
-          proposalId={props.proposal.id}
-          items={props.boqItems}
-          currency={props.proposal.currency}
-          showPricing={props.proposal.showPricing}
-        />
+        <BoqPanel proposalId={props.proposal.id} items={props.boqItems} />
       )}
       {tab === "Generate" && (
         <GeneratePanel
@@ -109,8 +104,6 @@ function DetailsPanel({
     brandProfileId: proposal.brandProfileId ?? "",
     proposalDate: proposal.proposalDate,
     reference: proposal.reference,
-    showPricing: proposal.showPricing,
-    currency: proposal.currency,
     contactName: proposal.contactName,
     contactTitle: proposal.contactTitle,
     contactEmail: proposal.contactEmail,
@@ -223,24 +216,6 @@ function DetailsPanel({
             />
           </Field>
         </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={f.showPricing}
-            onChange={(e) => set({ showPricing: e.target.checked })}
-          />
-          Show pricing in BoQ
-        </label>
-        <Field label="Currency">
-          <Input
-            value={f.currency}
-            maxLength={3}
-            onChange={(e) => set({ currency: e.target.value.toUpperCase() })}
-          />
-        </Field>
       </div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}

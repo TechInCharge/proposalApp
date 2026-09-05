@@ -7,8 +7,6 @@ export interface AssembleInput {
     title: string;
     proposalDate: Date;
     reference: string | null;
-    showPricing: boolean;
-    currency: string;
     contactName: string | null;
     contactTitle: string | null;
     contactEmail: string | null;
@@ -26,12 +24,12 @@ export interface AssembleInput {
     showPageNumbers: boolean;
   };
   sections: { id: string; title: string; body: unknown }[];
+  // BoQ items carry no pricing — technical proposals here list what's being
+  // delivered (typically license items), not commercial terms.
   boqItems: {
     partNumber: string | null;
     description: string;
     quantity: number;
-    unit: string;
-    unitPrice: number;
   }[];
 }
 
@@ -59,50 +57,23 @@ function esc(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
-function money(amount: number, currency: string): string {
-  try {
-    return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(
-      amount,
-    );
-  } catch {
-    return `${currency} ${amount.toFixed(2)}`;
-  }
-}
-
-function boqTableHtml(
-  items: AssembleInput["boqItems"],
-  opts: { showPricing: boolean; currency: string },
-): string {
+function boqTableHtml(items: AssembleInput["boqItems"]): string {
   if (!items.length) return "<p><em>No items.</em></p>";
-  const cols = opts.showPricing
-    ? ["#", "Part No.", "Description", "Qty", "Unit", "Unit Price", "Total"]
-    : ["#", "Part No.", "Description", "Qty", "Unit"];
-  const head = `<tr>${cols.map((c) => `<th>${c}</th>`).join("")}</tr>`;
-  let grand = 0;
+  const head = `<tr>${["#", "Part No.", "Description", "Qty"]
+    .map((c) => `<th>${c}</th>`)
+    .join("")}</tr>`;
   const rows = items
     .map((it, i) => {
-      const total = it.quantity * it.unitPrice;
-      grand += total;
-      const base = [
+      const cells = [
         String(i + 1),
         esc(it.partNumber ?? ""),
         esc(it.description),
         String(it.quantity),
-        esc(it.unit),
       ];
-      const priced = opts.showPricing
-        ? [money(it.unitPrice, opts.currency), money(total, opts.currency)]
-        : [];
-      return `<tr>${[...base, ...priced].map((c) => `<td>${c}</td>`).join("")}</tr>`;
+      return `<tr>${cells.map((c) => `<td>${c}</td>`).join("")}</tr>`;
     })
     .join("");
-  const foot = opts.showPricing
-    ? `<tr><td colspan="6" style="text-align:right;font-weight:700">Grand Total</td><td style="font-weight:700">${money(
-        grand,
-        opts.currency,
-      )}</td></tr>`
-    : "";
-  return `<table class="boq"><thead>${head}</thead><tbody>${rows}${foot}</tbody></table>`;
+  return `<table class="boq"><thead>${head}</thead><tbody>${rows}</tbody></table>`;
 }
 
 export async function assembleProposalHtml(
@@ -121,10 +92,7 @@ export async function assembleProposalHtml(
   });
 
   const missing = new Set<string>();
-  const boqHtml = boqTableHtml(input.boqItems, {
-    showPricing: input.proposal.showPricing,
-    currency: input.proposal.currency,
-  });
+  const boqHtml = boqTableHtml(input.boqItems);
 
   let boqRendered = false;
   const sectionHtml = input.sections

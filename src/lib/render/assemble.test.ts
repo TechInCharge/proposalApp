@@ -14,8 +14,6 @@ function baseInput(overrides: Partial<AssembleInput> = {}): AssembleInput {
       title: "Firewall Refresh",
       proposalDate: new Date("2026-09-04T12:00:00Z"),
       reference: "OPP-1",
-      showPricing: true,
-      currency: "USD",
       contactName: null,
       contactTitle: null,
       contactEmail: null,
@@ -38,44 +36,30 @@ describe("assembleProposalHtml", () => {
     expect(missingTokens).toEqual([]);
   });
 
-  it("appends a Bill of Quantities section when items exist and no token is used", async () => {
+  it("appends a Bill of Quantities section (no pricing) when items exist and no token is used", async () => {
     const { html } = await assembleProposalHtml(
       baseInput({
-        boqItems: [
-          { partNumber: "FW-1", description: "Firewall", quantity: 2, unit: "ea", unitPrice: 1000 },
-        ],
+        boqItems: [{ partNumber: "FW-1", description: "Firewall", quantity: 2 }],
       }),
     );
     expect(html).toContain("Bill of Quantities");
-    expect(html).toContain("$2,000.00"); // line + grand total
-    expect(html).toContain("Grand Total");
+    expect(html).toContain("FW-1");
+    expect(html).toContain("Firewall");
+    expect(html).not.toContain("Unit Price");
+    expect(html).not.toContain("Grand Total");
   });
 
   it("injects the BoQ table in place of a {{boq.table}} paragraph, not appended", async () => {
     const input = baseInput({
-      sections: [{ id: "s1", title: "Pricing", body: doc("See below.", "{{boq.table}}") }],
-      boqItems: [
-        { partNumber: "FW-1", description: "Firewall", quantity: 1, unit: "ea", unitPrice: 500 },
-      ],
+      sections: [{ id: "s1", title: "Items", body: doc("See below.", "{{boq.table}}") }],
+      boqItems: [{ partNumber: "FW-1", description: "Firewall", quantity: 1 }],
     });
     const { html } = await assembleProposalHtml(input);
     expect(html).not.toContain("<p>{{boq.table}}</p>");
-    // Only one BoQ table => "Grand Total" appears exactly once.
-    expect(html.match(/Grand Total/g)).toHaveLength(1);
-  });
-
-  it("omits price columns when showPricing is false", async () => {
-    const { html } = await assembleProposalHtml(
-      baseInput({
-        proposal: { ...baseInput().proposal, showPricing: false },
-        boqItems: [
-          { partNumber: "FW-1", description: "Firewall", quantity: 1, unit: "ea", unitPrice: 500 },
-        ],
-      }),
-    );
-    expect(html).toContain("Bill of Quantities");
-    expect(html).not.toContain("Unit Price");
-    expect(html).not.toContain("$500.00");
+    // Only one BoQ table => only one "Bill of Quantities" header would appear
+    // if it were also appended; confirm it was not.
+    expect(html.match(/Bill of Quantities/g)).toBeNull();
+    expect(html).toContain("FW-1");
   });
 
   it("reports missing tokens", async () => {

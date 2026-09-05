@@ -166,8 +166,6 @@ model Proposal {
   customerId     String
   brandProfileId String?
   createdById    String
-  showPricing    Boolean        @default(false) // technical proposals default to no pricing; a commercial quote is a separate document
-  currency       String         @default("USD")
 
   // Snapshot of a Customer contact picked for this proposal (not a live
   // reference — editing/removing the customer's contact later does not
@@ -232,15 +230,16 @@ model ProposalSection {
 }
 
 // Bill of Quantities line item.
+// Bill of Quantities line item — a licensed/physical item, its part number,
+// description and quantity. No pricing: technical proposals here don't carry
+// commercial terms (that's a separate quote).
 model BoqItem {
   id          String   @id @default(cuid())
   proposalId  String
   order       Int      @default(0)
   partNumber  String?
   description String
-  quantity    Decimal  @default(1) @db.Decimal(12, 2)
-  unit        String   @default("ea")
-  unitPrice   Decimal  @default(0) @db.Decimal(14, 2)
+  quantity    Int      @default(1)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

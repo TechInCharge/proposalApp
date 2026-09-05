@@ -58,8 +58,6 @@ export default async function EditProposalPage({
           brandProfileId: proposal.brandProfileId,
           proposalDate: proposal.proposalDate.toISOString().slice(0, 10),
           reference: proposal.reference ?? "",
-          showPricing: proposal.showPricing,
-          currency: proposal.currency,
           contactName: proposal.contactName ?? "",
           contactTitle: proposal.contactTitle ?? "",
           contactEmail: proposal.contactEmail ?? "",
@@ -81,9 +79,7 @@ export default async function EditProposalPage({
         boqItems={proposal.boqItems.map((b) => ({
           partNumber: b.partNumber ?? "",
           description: b.description,
-          quantity: Number(b.quantity),
-          unit: b.unit,
-          unitPrice: Number(b.unitPrice),
+          quantity: b.quantity,
         }))}
         customers={customers.map((c) => ({ id: c.id, name: c.name }))}
         brandProfiles={brandProfiles.map((b) => ({

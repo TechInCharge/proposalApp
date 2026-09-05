@@ -17,8 +17,6 @@ export async function loadAndAssemble(
       title: proposal.title,
       proposalDate: proposal.proposalDate,
       reference: proposal.reference,
-      showPricing: proposal.showPricing,
-      currency: proposal.currency,
       contactName: proposal.contactName,
       contactTitle: proposal.contactTitle,
       contactEmail: proposal.contactEmail,
@@ -47,9 +45,7 @@ export async function loadAndAssemble(
     boqItems: proposal.boqItems.map((b) => ({
       partNumber: b.partNumber,
       description: b.description,
-      quantity: Number(b.quantity),
-      unit: b.unit,
-      unitPrice: Number(b.unitPrice),
+      quantity: b.quantity,
     })),
   };
 

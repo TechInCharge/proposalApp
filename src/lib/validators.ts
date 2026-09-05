@@ -56,8 +56,6 @@ export const proposalInput = z.object({
   brandProfileId: z.string().optional().or(z.literal("")),
   proposalDate: z.coerce.date().default(() => new Date()),
   reference: z.string().max(120).optional().or(z.literal("")),
-  showPricing: z.boolean().default(false),
-  currency: z.string().length(3).default("USD"),
   contactName: z.string().max(200).optional().or(z.literal("")),
   contactTitle: z.string().max(200).optional().or(z.literal("")),
   contactEmail: z.string().max(200).optional().or(z.literal("")),
@@ -68,9 +66,7 @@ export type ProposalInput = z.infer<typeof proposalInput>;
 export const boqItemInput = z.object({
   partNumber: z.string().max(120).optional().or(z.literal("")),
   description: z.string().min(1).max(500),
-  quantity: z.coerce.number().min(0),
-  unit: z.string().max(20).default("ea"),
-  unitPrice: z.coerce.number().min(0).default(0),
+  quantity: z.coerce.number().int().min(1).default(1),
 });
 export type BoqItemInput = z.infer<typeof boqItemInput>;
 

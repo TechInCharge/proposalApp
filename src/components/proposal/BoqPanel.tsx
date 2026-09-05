@@ -10,20 +10,14 @@ const EMPTY: WorkspaceBoqItem = {
   partNumber: "",
   description: "",
   quantity: 1,
-  unit: "ea",
-  unitPrice: 0,
 };
 
 export function BoqPanel({
   proposalId,
   items,
-  currency,
-  showPricing,
 }: {
   proposalId: string;
   items: WorkspaceBoqItem[];
-  currency: string;
-  showPricing: boolean;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -60,15 +54,6 @@ export function BoqPanel({
     });
   }
 
-  const total = rows.reduce((s, r) => s + r.quantity * r.unitPrice, 0);
-  const fmt = (n: number) => {
-    try {
-      return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(n);
-    } catch {
-      return `${currency} ${n.toFixed(2)}`;
-    }
-  };
-
   function save() {
     start(async () => {
       const res = await saveBoq(
@@ -91,9 +76,6 @@ export function BoqPanel({
               <th className="p-1">Part No.</th>
               <th className="p-1">Description</th>
               <th className="p-1 w-20">Qty</th>
-              <th className="p-1 w-20">Unit</th>
-              {showPricing && <th className="p-1 w-28">Unit price</th>}
-              {showPricing && <th className="p-1 w-28">Line total</th>}
               <th className="p-1" />
             </tr>
           </thead>
@@ -115,22 +97,6 @@ export function BoqPanel({
                   />
                 </td>
                 <td className="p-1">
-                  <Input value={r.unit} onChange={(e) => set(i, { unit: e.target.value })} />
-                </td>
-                {showPricing && (
-                  <td className="p-1">
-                    <Input
-                      type="number"
-                      value={r.unitPrice}
-                      onFocus={(e) => e.target.select()}
-                      onChange={(e) => set(i, { unitPrice: Number(e.target.value) })}
-                    />
-                  </td>
-                )}
-                {showPricing && (
-                  <td className="p-1 text-slate-600">{fmt(r.quantity * r.unitPrice)}</td>
-                )}
-                <td className="p-1">
                   <button
                     type="button"
                     className="text-xs text-red-600"
@@ -145,17 +111,6 @@ export function BoqPanel({
               </tr>
             ))}
           </tbody>
-          {showPricing && rows.length > 0 && (
-            <tfoot>
-              <tr>
-                <td colSpan={5} className="p-1 text-right font-semibold">
-                  Grand total
-                </td>
-                <td className="p-1 font-semibold">{fmt(total)}</td>
-                <td />
-              </tr>
-            </tfoot>
-          )}
         </table>
       </div>
 
@@ -190,7 +145,7 @@ export function BoqPanel({
       {importError && <p className="text-sm text-red-600">{importError}</p>}
       <p className="text-xs text-slate-400">
         Import expects a header row with a <strong>Description</strong> column;
-        Part No., Qty, Unit and Unit Price are matched by common aliases.
+        Part No. and Qty are matched by common aliases.
       </p>
     </div>
   );

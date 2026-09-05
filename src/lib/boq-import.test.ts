@@ -2,11 +2,11 @@ import { describe, it, expect } from "vitest";
 import { parseBoqBuffer } from "./boq-import";
 
 describe("parseBoqBuffer (CSV)", () => {
-  it("maps common header aliases and coerces numbers", async () => {
+  it("maps common header aliases and coerces quantity", async () => {
     const csv = [
-      "Part No,Description,Qty,Unit,Unit Price",
-      "FW-1000,Perimeter firewall HA pair,2,ea,\"$18,500.00\"",
-      "SFP-10G,10G SFP+ module,8,ea,120",
+      "Part No,Description,Qty",
+      "LIC-ATP-1YR,\"NGFW-1000 Advanced Threat Protection, 1-year\",2",
+      "SFP-10G,10G SFP+ module,8",
     ].join("\n");
 
     const { rows, skipped } = await parseBoqBuffer(Buffer.from(csv), "boq.csv");
@@ -14,13 +14,10 @@ describe("parseBoqBuffer (CSV)", () => {
     expect(skipped).toBe(0);
     expect(rows).toHaveLength(2);
     expect(rows[0]).toMatchObject({
-      partNumber: "FW-1000",
-      description: "Perimeter firewall HA pair",
+      partNumber: "LIC-ATP-1YR",
       quantity: 2,
-      unit: "ea",
-      unitPrice: 18500,
     });
-    expect(rows[1].unitPrice).toBe(120);
+    expect(rows[1].quantity).toBe(8);
   });
 
   it("skips rows with no description but keeps a running count", async () => {
@@ -30,9 +27,9 @@ describe("parseBoqBuffer (CSV)", () => {
     expect(skipped).toBe(1);
   });
 
-  it("defaults qty to 1 and unit to 'ea' when columns are absent", async () => {
+  it("defaults qty to 1 when the column is absent", async () => {
     const csv = ["Description", "Widget"].join("\n");
     const { rows } = await parseBoqBuffer(Buffer.from(csv), "x.csv");
-    expect(rows[0]).toMatchObject({ description: "Widget", quantity: 1, unit: "ea", unitPrice: 0 });
+    expect(rows[0]).toMatchObject({ description: "Widget", quantity: 1 });
   });
 });
