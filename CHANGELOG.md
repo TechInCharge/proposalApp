@@ -8,6 +8,12 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- **DOCX section titles now match the PDF.** The PDF's coloured rule under each
+  section title was dropped by the DOCX writer (it ignores `border-bottom` on a
+  paragraph), and titles at 14pt didn't stand out. Section titles are now a
+  17pt bold Heading 2 followed by a full-width brand-coloured rule (a 1-cell
+  table with only a bottom border, which the writer does honour), keeping the
+  Word navigation-pane entry.
 - **Cover-page images were sized wrong.** In the PDF the auto-cover's 56px logo
   cap (`.cover img`) bled into custom cover templates and shrank every image to
   56px tall; it's now scoped to the auto-cover logo row, and custom-cover

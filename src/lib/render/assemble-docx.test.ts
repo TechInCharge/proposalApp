@@ -32,12 +32,17 @@ describe("assembleProposalDocxHtml", () => {
     expect(missingTokens).toEqual([]);
   });
 
-  it("styles the section heading inline", async () => {
+  it("gives a section title a bold heading plus a full-width brand rule", async () => {
     const { html } = await assembleProposalDocxHtml(baseInput());
+    // Heading 2, brand-secondary, larger than content headings
     expect(html).toMatch(
       new RegExp(
-        `<h2 style="[^"]*color:${DEFAULT_BRAND.secondaryColor}[^"]*border-bottom:2px solid ${DEFAULT_BRAND.primaryColor}`,
+        `<h2 style="color:${DEFAULT_BRAND.secondaryColor};font-size:17pt;font-weight:bold[^"]*">Overview</h2>`,
       ),
+    );
+    // followed by a 1-cell table used as the coloured underline
+    expect(html).toContain(
+      `<td style="border-bottom:2.5pt solid ${DEFAULT_BRAND.primaryColor};`,
     );
   });
 

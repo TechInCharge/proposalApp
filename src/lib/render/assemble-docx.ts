@@ -183,6 +183,25 @@ function docxifySectionHtml(
   return root.toString();
 }
 
+/**
+ * A section title: a Heading 2 (keeps Word's outline / navigation entry) plus a
+ * full-width brand-coloured rule underneath — turbodocx ignores `border-bottom`
+ * on a paragraph, so the rule is a 1-cell table with only a bottom border,
+ * which it does honour.
+ */
+function sectionTitleDocx(
+  title: string,
+  brand: { primary: string; secondary: string },
+): string {
+  return (
+    `<h2 style="color:${brand.secondary};font-size:17pt;font-weight:bold;margin:18pt 0 2pt">` +
+    `${esc(title)}</h2>` +
+    `<table style="width:100%;border-collapse:collapse;margin:0 0 8pt"><tr>` +
+    `<td style="border-bottom:2.5pt solid ${brand.primary};padding:0;font-size:2pt">&#160;</td>` +
+    `</tr></table>`
+  );
+}
+
 function boqTableDocxHtml(
   items: AssembleInput["boqItems"],
   brand: { primary: string },
@@ -246,18 +265,14 @@ export async function assembleProposalDocxHtml(
           return boqHtml;
         },
       );
-      return (
-        `<h2 style="color:${brand.secondary};font-size:14pt;font-weight:bold;` +
-        `border-bottom:2px solid ${brand.primary};padding-bottom:3pt;margin:16pt 0 8pt">` +
-        `${esc(s.title)}</h2>${body}`
-      );
+      return sectionTitleDocx(s.title, brand) + body;
     })
     .join("\n");
   sectionHtml = await inlineFileImages(sectionHtml);
 
   const boqSection =
     !boqRendered && input.boqItems.length
-      ? `<h2 style="color:${brand.secondary};font-size:14pt;font-weight:bold;border-bottom:2px solid ${brand.primary};padding-bottom:3pt;margin:16pt 0 8pt">Bill of Quantities</h2>${boqHtml}`
+      ? sectionTitleDocx("Bill of Quantities", brand) + boqHtml
       : "";
 
   const brandLogo = await toDataUri(input.brand.logoUrl);
