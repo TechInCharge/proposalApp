@@ -40,6 +40,10 @@ npm run dev
 
 Open http://localhost:3000 and sign in with the seeded admin account.
 
+Add teammates from the app itself: **Users** in the nav (admin only) →
+**New user**. There's no other way to create an account — the seed script
+only ever creates the one bootstrap admin.
+
 ## Scripts
 
 | Script | Purpose |

@@ -43,6 +43,11 @@
 - [x] **BoQ has no pricing at all** — went further than a toggle: removed
       `unit`, `unitPrice`, `showPricing`, `currency` entirely. BoQ rows are
       Part Number / Description / Quantity (integer) — that's the whole model.
+- [x] **User management UI** (ADMIN) — create/edit/delete accounts, set
+      ADMIN/AUTHOR role, reset a password. Previously the only way to create a
+      user was the seed script. Guards: can't delete/demote yourself away from
+      the last remaining admin, can't delete a user who has created proposals
+      (friendly error instead of a raw FK violation), duplicate email handled.
 - [ ] Playwright happy-path test
 
 ## Known gaps / tech debt
@@ -64,6 +69,22 @@
 
 - [ ] Cover-page designer
 - [ ] Drag-and-drop section ordering across products
+
+## Going live (not started)
+
+The app currently only runs locally (this laptop's Postgres + local disk for
+files). Whenever real deployment is next:
+
+- [ ] Pick a host (Vercel, a VPS, your own server) — decides the two items below
+- [ ] Production Postgres (Neon, Supabase, RDS, or self-hosted)
+- [ ] File storage: local disk (`src/lib/storage.ts`) is fine on a persistent
+      server/container; a serverless host (e.g. Vercel functions) needs an
+      S3-equivalent instead, since local disk doesn't persist there
+- [ ] PDF generation on that host: Puppeteer works as-is on a normal
+      server/container; serverless needs `puppeteer-core` + `@sparticuz/chromium`
+- [ ] Real `AUTH_SECRET` (not the `.env.example` placeholder) and change the
+      seeded admin password
+- [ ] Database backup plan
 
 ## Not doing
 

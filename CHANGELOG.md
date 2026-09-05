@@ -8,6 +8,17 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- **User management** (ADMIN): create, edit, and delete accounts; set the
+  ADMIN/AUTHOR role; reset a password. Previously the only way to create a
+  user was the seed script. Guards against removing the last administrator
+  (by delete or by demotion), against deleting yourself, against deleting a
+  user who has created proposals (friendly error, not a raw FK violation),
+  and against duplicate emails.
+
+## [0.6.0] - 2026-09-05
+
+### Added
+
 - **seclore.com-inspired theme**, applied to both the platform UI and
   generated proposals: Inter typeface, an indigo/violet brand accent
   (`#5636CE`), near-black headings, light-gray rounded cards. New
