@@ -6,6 +6,19 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- **Section bodies could render empty in DOCX/PDF outside `next dev`** (server
+  actions on some hosts, standalone scripts, serverless): `docToHtml` used the
+  browser build of `@tiptap/html`, which throws without a `window`, and the
+  error was swallowed. Switched to `@tiptap/html/server` (happy-dom backed); a
+  genuine render failure now shows a visible placeholder instead of nothing.
+- New proposals default `showPricing` to **false** — a technical proposal
+  ships without prices; pricing belongs in a separate commercial quote. Still
+  a per-proposal toggle on the Details tab.
+
+## [0.3.0] - 2026-09-04
+
 ### Added
 
 - **BoQ import** from `.xlsx` / `.csv` — headers matched by common aliases
