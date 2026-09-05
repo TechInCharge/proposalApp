@@ -37,8 +37,12 @@
       adds new templates, reports edited/orphaned counts
 - [x] Unit tests (Vitest) for `resolvePlaceholders`, `assembleProposalHtml`,
       `parseBoqBuffer`
-- [x] Pricing toggle + currency (done in Phase 1)
-- [ ] Reusable customer-contact picker on the proposal
+- [x] Pricing toggle + currency (done in Phase 1); **default flipped to no
+      pricing** — a technical proposal ships without prices, pricing is a
+      separate commercial quote
+- [x] Proposal contact fields — manual name/title/email/phone per proposal
+      (no customer-contact picker, by design), "Attn:" on the cover,
+      `{{contact.*}}` placeholders
 - [ ] Section template diff view (show what changed before refreshing)
 - [ ] Taxes / discounts on the BoQ
 - [ ] Playwright happy-path test
@@ -52,6 +56,11 @@
 - PDF generation runs in-process via Puppeteer. On serverless hosts switch to
   `puppeteer-core` + `@sparticuz/chromium` or a dedicated worker.
 - `refreshProposalSections` never deletes orphaned snapshots — only reports them.
+- `docToHtml` renders via `@tiptap/html/server` (happy-dom) rather than the
+  browser build — required for server actions/serverless; keep it that way.
+- The dev machine's file sync (iCloud/Dropbox/OneDrive) creates conflicted-copy
+  duplicates (`name 2.ts`, `name 3.ts`, …) while editing. They're gitignored
+  and excluded from `tsconfig.json`, but worth investigating at the OS level.
 
 ## Phase 3
 

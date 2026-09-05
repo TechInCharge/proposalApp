@@ -6,6 +6,14 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **Proposal contact fields** — name/title/email/phone entered manually per
+  proposal (Details tab), rendered as "Attn: <name>, <title>" on the cover
+  page, and available as `{{contact.name}}` / `{{contact.title}}` /
+  `{{contact.email}}` / `{{contact.phone}}` in section text. Copied by
+  proposal duplication.
+
 ### Fixed
 
 - **Section bodies could render empty in DOCX/PDF outside `next dev`** (server
