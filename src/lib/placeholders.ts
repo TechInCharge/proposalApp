@@ -35,6 +35,37 @@ export function extractTokens(text: string): string[] {
   return [...text.matchAll(TOKEN_RE)].map((m) => m[1]);
 }
 
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/**
+ * Resolve {{tokens}} inside an HTML section body (CKEditor output).
+ *
+ * Substituted values are HTML-escaped. Tokens with no context value are left
+ * verbatim and reported in `missing` — including block tokens such as
+ * `{{boq.table}}`, which the assembler swaps for a real table afterwards.
+ */
+export function resolvePlaceholdersInHtml(
+  html: string,
+  ctx: PlaceholderContext,
+): { html: string; missing: string[] } {
+  const missing = new Set<string>();
+  const out = html.replace(TOKEN_RE, (_, token: string) => {
+    const value = getPath(ctx, token);
+    if (value === undefined || value === null) {
+      missing.add(token);
+      return `{{${token}}}`;
+    }
+    return escapeHtml(String(value));
+  });
+  return { html: out, missing: [...missing] };
+}
+
 export function resolvePlaceholders(
   input: unknown,
   ctx: PlaceholderContext,

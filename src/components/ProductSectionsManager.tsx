@@ -12,7 +12,7 @@ import {
 
 type Section = { id: string; title: string; order: number; body: unknown };
 
-const EMPTY_DOC = { type: "doc", content: [{ type: "paragraph" }] };
+const EMPTY_BODY = "";
 
 export function ProductSectionsManager({
   productId,
@@ -25,20 +25,20 @@ export function ProductSectionsManager({
   const [pending, start] = useTransition();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftTitle, setDraftTitle] = useState("");
-  const [draftBody, setDraftBody] = useState<unknown>(EMPTY_DOC);
+  const [draftBody, setDraftBody] = useState<unknown>(EMPTY_BODY);
   const [error, setError] = useState<string | null>(null);
 
   function openNew() {
     setEditingId("new");
     setDraftTitle("");
-    setDraftBody(EMPTY_DOC);
+    setDraftBody(EMPTY_BODY);
     setError(null);
   }
 
   function openEdit(s: Section) {
     setEditingId(s.id);
     setDraftTitle(s.title);
-    setDraftBody(s.body ?? EMPTY_DOC);
+    setDraftBody(s.body ?? EMPTY_BODY);
     setError(null);
   }
 

@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   resolvePlaceholders,
+  resolvePlaceholdersInHtml,
   buildContext,
   extractTokens,
 } from "./placeholders";
@@ -68,5 +69,30 @@ describe("resolvePlaceholders", () => {
   it("handles empty / malformed input without throwing", () => {
     expect(() => resolvePlaceholders(null, ctx)).not.toThrow();
     expect(() => resolvePlaceholders({}, ctx)).not.toThrow();
+  });
+});
+
+describe("resolvePlaceholdersInHtml", () => {
+  it("substitutes known tokens and HTML-escapes the value", () => {
+    const { html, missing } = resolvePlaceholdersInHtml(
+      "<p>For {{customer.name}} on {{proposal.date}}</p>",
+      buildContext({
+        customerName: "A & B <Co>",
+        proposalTitle: "T",
+        proposalDate: new Date("2026-09-04T12:00:00Z"),
+      }),
+    );
+    expect(html).toBe("<p>For A &amp; B &lt;Co&gt; on 2026-09-04</p>");
+    expect(missing).toEqual([]);
+  });
+
+  it("leaves unknown and block tokens intact and reports the unknown ones", () => {
+    const { html, missing } = resolvePlaceholdersInHtml(
+      "<p>{{boq.table}}</p><p>{{customer.vatId}}</p>",
+      ctx,
+    );
+    expect(html).toContain("<p>{{boq.table}}</p>");
+    expect(html).toContain("{{customer.vatId}}");
+    expect(missing).toEqual(["boq.table", "customer.vatId"]);
   });
 });

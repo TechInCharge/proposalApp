@@ -1,5 +1,5 @@
-import { buildContext, resolvePlaceholders } from "@/lib/placeholders";
-import { docToHtml } from "@/lib/render/tiptap";
+import { buildContext, resolvePlaceholdersInHtml } from "@/lib/placeholders";
+import { sectionBodyToHtml } from "@/lib/render/section-html";
 import { toDataUri } from "@/lib/storage";
 import { interFontFaceCss } from "@/lib/render/fonts";
 
@@ -124,13 +124,18 @@ export async function assembleProposalHtml(
   let boqRendered = false;
   let sectionHtml = input.sections
     .map((s) => {
-      const { doc, missing: m } = resolvePlaceholders(s.body, ctx);
+      const { html: resolved, missing: m } = resolvePlaceholdersInHtml(
+        sectionBodyToHtml(s.body),
+        ctx,
+      );
       m.forEach((t) => missing.add(t));
-      let body = docToHtml(doc);
-      body = body.replace(/<p>\s*\{\{\s*boq\.table\s*\}\}\s*<\/p>/gi, () => {
-        boqRendered = true;
-        return boqHtml;
-      });
+      const body = resolved.replace(
+        /<p>\s*\{\{\s*boq\.table\s*\}\}\s*<\/p>/gi,
+        () => {
+          boqRendered = true;
+          return boqHtml;
+        },
+      );
       return `<section class="doc-section"><h2>${esc(s.title)}</h2>${body}</section>`;
     })
     .join("\n");
@@ -184,24 +189,45 @@ export async function assembleProposalHtml(
     p { margin: 6px 0; }
     ul, ol { margin: 6px 0 6px 20px; }
     h4 { color: var(--secondary); font-weight: 700; font-size: 13px; margin: 10px 0 4px; }
-    /* rich-text content authored in the section editor */
+    /* rich-text content authored in the CKEditor section editor */
     .doc-section a { color: var(--primary); text-decoration: underline; }
-    .doc-section img { max-width: 100%; height: auto; border-radius: 6px; margin: 6px 0; page-break-inside: avoid; }
+    .doc-section figure { margin: 10px 0; }
+    .doc-section img { max-width: 100%; height: auto; border-radius: 6px; page-break-inside: avoid; }
+    .doc-section figure.image { text-align: center; }
+    .doc-section figure.image img { display: inline-block; }
+    .doc-section figure.image > figcaption { font-size: 10px; color: #64748b; text-align: center; margin-top: 4px; }
+    .doc-section figure.image.image-style-align-left { float: left; margin: 4px 16px 8px 0; max-width: 50%; }
+    .doc-section figure.image.image-style-align-right,
+    .doc-section figure.image.image-style-side { float: right; margin: 4px 0 8px 16px; max-width: 50%; }
+    .doc-section figure.image.image-style-align-center { margin-left: auto; margin-right: auto; }
+    .doc-section figure.image.image_resized { max-width: 100%; }
     .doc-section blockquote { border-left: 3px solid var(--primary); margin: 8px 0; padding-left: 12px; color: #475569; }
     .doc-section pre { background: #f1f5f9; border-radius: 6px; padding: 10px 12px; overflow-x: auto; font-size: 10.5px; }
     .doc-section code { background: #f1f5f9; border-radius: 4px; padding: 1px 4px; }
     .doc-section pre code { background: none; padding: 0; }
     .doc-section hr { border: 0; border-top: 1px solid #cbd5e1; margin: 10px 0; }
     .doc-section mark { border-radius: 3px; padding: 0.05em 0.15em; }
-    .doc-section table.doc-table, .doc-section .tableWrapper table {
+    .doc-section .marker-yellow { background: #fdfd77; }
+    .doc-section .marker-green { background: #7ee686; }
+    .doc-section .marker-pink { background: #fc7899; }
+    .doc-section .marker-blue { background: #72cdfd; }
+    .doc-section .pen-red { color: #e71313; }
+    .doc-section .pen-green { color: #128a00; }
+    .doc-section .text-tiny { font-size: 0.7em; }
+    .doc-section .text-small { font-size: 0.85em; }
+    .doc-section .text-big { font-size: 1.4em; }
+    .doc-section .text-huge { font-size: 1.8em; }
+    .doc-section .page-break { page-break-after: always; }
+    .doc-section .page-break__label { display: none; }
+    .doc-section table:not(.boq) {
       border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 11px; table-layout: auto;
     }
-    .doc-section table.doc-table th, .doc-section table.doc-table td,
-    .doc-section .tableWrapper th, .doc-section .tableWrapper td {
+    .doc-section figure.table { overflow-x: auto; }
+    .doc-section table:not(.boq) th, .doc-section table:not(.boq) td {
       border: 1px solid #cbd5e1; padding: 6px 8px; text-align: left; vertical-align: top;
     }
-    .doc-section table.doc-table th, .doc-section .tableWrapper th { background: #f1f5f9; font-weight: 600; }
-    .doc-section .tableWrapper { overflow-x: auto; }
+    .doc-section table:not(.boq) th { background: #f1f5f9; font-weight: 600; }
+    .doc-section figure.table > figcaption { font-size: 10px; color: #64748b; margin-bottom: 4px; caption-side: top; }
   </style></head><body>
   <div class="cover">
     <div class="accent-bar"></div>

@@ -6,26 +6,36 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
-### Added
+### Changed
 
-- **Full rich-text section editor.** Replaces the six-button toolbar with a
-  Word-style one: paragraph/H1–H4, font size, **bold/italic/underline/
-  strikethrough/code/super-/subscript**, text colour + highlight, left/
-  centre/right/justify alignment, bullet & numbered lists, blockquote, code
-  block, horizontal rule, links, **image upload** (button, paste or drag —
-  stored server-side, embedded as base64 in the generated PDF/DOCX), and
-  **tables** with a contextual toolbar (add/remove rows & columns, toggle
-  header row, merge/split, delete). The renderer, document CSS (PDF/DOCX/
-  preview) and placeholder resolution all handle the new node types;
-  `{{tokens}}` work inside table cells.
+- **Section editor is now CKEditor 5** (replacing TipTap). Word-style toolbar:
+  paragraph/H1–H4, font family/size, text colour + background + highlight,
+  **bold/italic/underline/strikethrough/code/super-/subscript**, alignment,
+  indent, bullet & numbered lists, block quote, code block, horizontal line,
+  **page break**, special characters, links (with "open in new tab"),
+  **image upload** (button, paste or drag — stored server-side, embedded as
+  base64 in the generated PDF/DOCX), **tables** with table & cell properties
+  and captions, plus **find & replace**, **remove format**, **paste from
+  Word/Google Docs** clean-up, and a source-view.
+- **Section bodies are stored as HTML strings** instead of ProseMirror JSON.
+  The `body` column stays `Json` (a string is valid JSON) — no migration.
+  Output is whitelist-sanitised (`src/lib/render/sanitize.ts`) before it is
+  stored or rendered. Placeholder resolution runs on the HTML
+  (`resolvePlaceholdersInHtml`); `{{tokens}}` and `{{boq.table}}` still work,
+  including inside table cells.
+- Rows created in the old editor keep rendering (a legacy ProseMirror→HTML
+  path); `scripts/migrate-section-bodies.ts` converts them permanently
+  (`npx tsx scripts/migrate-section-bodies.ts`, and once more via
+  `railway run` against production).
+- Editor image upload moved from a Server Action to `POST /api/editor/upload`
+  (CKEditor's upload adapter needs a URL endpoint).
 
 ### Fixed
 
-- Saving a section whose body contains a table (or other deeply nested
-  content) 500'd with `Cannot access toStringTag … temporary client
-  reference`: React 19 hands parts of a large Server Action argument to the
-  server as lazy proxies that Prisma can't introspect. `proseMirrorDoc` now
-  deep-clones to plain JSON on parse.
+- The React 19 "temporary client reference / `Cannot access toStringTag`"
+  crash when saving a section with a table is gone: an HTML string serialises
+  cleanly across the Server Action boundary, so the deep-clone workaround is
+  no longer needed.
 
 ## [0.8.0] - 2026-09-05
 

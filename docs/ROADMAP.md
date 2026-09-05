@@ -15,8 +15,11 @@
 ## Done — Phase 1 MVP (v0.2.0)
 
 - [x] Products admin: list / create / edit / archive (ADMIN)
-- [x] Section templates: full rich-text editor (formatting, colour, alignment,
-      lists, links, image upload, tables), ordering, placeholder palette, versioning
+- [x] Section templates: CKEditor 5 rich-text editor (formatting, fonts,
+      colour, alignment, indent, lists, links, image upload, tables + cell
+      properties, page break, find & replace, paste-from-Word, source view),
+      ordering, placeholder palette, versioning. Bodies stored as sanitised
+      HTML strings.
 - [x] Customers: list / create / edit, logo upload
 - [x] Storage adapter (`src/lib/storage.ts`) — local disk now, S3 interface
 - [x] Proposal builder workspace (Details / Products / Sections / BoQ / Generate)
@@ -60,8 +63,15 @@
 - PDF generation runs in-process via Puppeteer. On serverless hosts switch to
   `puppeteer-core` + `@sparticuz/chromium` or a dedicated worker.
 - `refreshProposalSections` never deletes orphaned snapshots — only reports them.
-- `docToHtml` renders via `@tiptap/html/server` (happy-dom) rather than the
-  browser build — required for server actions/serverless; keep it that way.
+- `docToHtml` (`@tiptap/html/server`) + the `@tiptap/*` deps are kept **only**
+  for the legacy ProseMirror→HTML fallback and `scripts/migrate-section-bodies.ts`.
+  Once every environment (local + Railway) has run that script and no `body`
+  column holds a `{ type: "doc" }` object, delete `src/lib/render/tiptap.ts`,
+  `src/lib/editor-extensions.ts`, the legacy branch in `section-html.ts`, and
+  drop the `@tiptap/*` packages.
+- CKEditor 5 is used under its GPL licence (`licenseKey: "GPL"`). Swap to a
+  commercial key in `src/components/SectionEditorImpl.tsx` if the app is ever
+  distributed to third parties.
 - The dev machine's file sync (iCloud/Dropbox/OneDrive) creates conflicted-copy
   duplicates (`name 2.ts`, `name 3.ts`, …) while editing. They're gitignored
   and excluded from `tsconfig.json`, but worth investigating at the OS level.

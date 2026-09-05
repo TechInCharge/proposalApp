@@ -12,19 +12,9 @@ import {
 } from "@/lib/validators";
 import { extractTokens } from "@/lib/placeholders";
 
-function tokensFromDoc(doc: unknown): string[] {
-  const found = new Set<string>();
-  const walk = (n: unknown) => {
-    if (Array.isArray(n)) return n.forEach(walk);
-    if (!n || typeof n !== "object") return;
-    const node = n as Record<string, unknown>;
-    if (typeof node.text === "string") {
-      extractTokens(node.text).forEach((t) => found.add(t));
-    }
-    if (Array.isArray(node.content)) node.content.forEach(walk);
-  };
-  walk(doc);
-  return [...found];
+/** Distinct {{tokens}} used anywhere in an HTML section body. */
+function tokensFromBody(body: string): string[] {
+  return [...new Set(extractTokens(body))];
 }
 
 export async function saveProduct(
@@ -69,7 +59,7 @@ export async function saveSectionTemplate(
   }
   const { productId, title, order } = parsed.data;
   const body = parsed.data.body as Prisma.InputJsonValue;
-  const placeholders = tokensFromDoc(parsed.data.body);
+  const placeholders = tokensFromBody(parsed.data.body);
 
   if (id) {
     const existing = await prisma.sectionTemplate.findUnique({ where: { id } });

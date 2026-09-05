@@ -8,7 +8,7 @@ import { requireUser } from "@/lib/rbac";
 import {
   proposalInput,
   boqTableInput,
-  proseMirrorDoc,
+  sectionHtmlBody,
   type ProposalInput,
 } from "@/lib/validators";
 import type { ProposalStatus } from "@prisma/client";
@@ -127,7 +127,7 @@ export async function updateProposalSection(
   if (typeof data.title === "string") patch.title = data.title;
   if (typeof data.included === "boolean") patch.included = data.included;
   if (data.body !== undefined) {
-    const parsed = proseMirrorDoc.safeParse(data.body);
+    const parsed = sectionHtmlBody.safeParse(data.body);
     if (!parsed.success) return { ok: false as const, error: "Invalid body" };
     patch.body = parsed.data as Prisma.InputJsonValue;
   }

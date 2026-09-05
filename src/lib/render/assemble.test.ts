@@ -1,11 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { assembleProposalHtml, DEFAULT_BRAND, type AssembleInput } from "./assemble";
 
-function para(text: string) {
-  return { type: "paragraph", content: [{ type: "text", text }] };
-}
-function doc(...paras: string[]) {
-  return { type: "doc", content: paras.map(para) };
+/** Section bodies are HTML strings (CKEditor format). */
+function doc(...paragraphs: string[]) {
+  return paragraphs.map((t) => `<p>${t}</p>`).join("");
 }
 
 function baseInput(overrides: Partial<AssembleInput> = {}): AssembleInput {
@@ -56,8 +54,6 @@ describe("assembleProposalHtml", () => {
     });
     const { html } = await assembleProposalHtml(input);
     expect(html).not.toContain("<p>{{boq.table}}</p>");
-    // Only one BoQ table => only one "Bill of Quantities" header would appear
-    // if it were also appended; confirm it was not.
     expect(html.match(/Bill of Quantities/g)).toBeNull();
     expect(html).toContain("FW-1");
   });
@@ -89,72 +85,43 @@ describe("assembleProposalHtml", () => {
     expect(html).not.toContain("Attn:");
   });
 
-  it("renders rich-text tables, images, alignment and colour from a section body", async () => {
-    const richBody = {
-      type: "doc",
-      content: [
-        {
-          type: "heading",
-          attrs: { level: 3, textAlign: "center" },
-          content: [{ type: "text", text: "Specs" }],
-        },
-        {
-          type: "paragraph",
-          content: [
-            {
-              type: "text",
-              marks: [{ type: "textStyle", attrs: { color: "#5636CE" } }],
-              text: "coloured",
-            },
-          ],
-        },
-        { type: "image", attrs: { src: "https://example.test/diagram.png", alt: "d" } },
-        {
-          type: "table",
-          content: [
-            {
-              type: "tableRow",
-              content: [
-                {
-                  type: "tableHeader",
-                  content: [{ type: "paragraph", content: [{ type: "text", text: "Metric" }] }],
-                },
-                {
-                  type: "tableHeader",
-                  content: [{ type: "paragraph", content: [{ type: "text", text: "Value" }] }],
-                },
-              ],
-            },
-            {
-              type: "tableRow",
-              content: [
-                {
-                  type: "tableCell",
-                  content: [{ type: "paragraph", content: [{ type: "text", text: "Throughput" }] }],
-                },
-                {
-                  type: "tableCell",
-                  content: [
-                    { type: "paragraph", content: [{ type: "text", text: "for {{customer.name}}" }] },
-                  ],
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    };
+  it("keeps rich CKEditor markup (tables, images, alignment, colour) and resolves tokens inside cells", async () => {
+    const richBody = [
+      '<h3 style="text-align:center;">Specs</h3>',
+      '<p><span style="color:#5636CE;">coloured</span></p>',
+      '<figure class="image"><img src="https://example.test/diagram.png" alt="d"></figure>',
+      "<figure class=\"table\"><table>",
+      "<thead><tr><th>Metric</th><th>Value</th></tr></thead>",
+      "<tbody><tr><td>Throughput</td><td>for {{customer.name}}</td></tr></tbody>",
+      "</table></figure>",
+    ].join("");
     const { html, missingTokens } = await assembleProposalHtml(
       baseInput({ sections: [{ id: "s1", title: "Details", body: richBody }] }),
     );
-    expect(html).toContain("text-align: center");
-    expect(html).toContain("color: #5636CE");
-    expect(html).toContain('<img class="doc-image"');
-    expect(html).toContain("https://example.test/diagram.png"); // external src untouched
-    expect(html).toMatch(/<table[^>]*class="doc-table"/);
+    expect(html).toMatch(/text-align:\s*center/);
+    expect(html).toMatch(/color:\s*#5636CE/i);
+    expect(html).toContain("https://example.test/diagram.png");
+    expect(html).toMatch(/<figure class="image"/);
     expect(html).toContain("<th");
     expect(html).toContain("Throughput");
     expect(html).toContain("for Acme Co."); // token inside a table cell resolved
     expect(missingTokens).toEqual([]);
+  });
+
+  it("drops scripts and event handlers from a section body", async () => {
+    const { html } = await assembleProposalHtml(
+      baseInput({
+        sections: [
+          {
+            id: "s1",
+            title: "X",
+            body: '<p onclick="evil()">hi</p><script>steal()</script>',
+          },
+        ],
+      }),
+    );
+    expect(html).not.toContain("<script>steal");
+    expect(html).not.toContain("onclick");
+    expect(html).toContain("hi");
   });
 });

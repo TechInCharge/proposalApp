@@ -1,13 +1,19 @@
 import { z } from "zod";
 
 /**
- * A permissive ProseMirror document node.
- *
- * The `.transform` deep-clones to plain JSON. When a rich body (tables,
- * images, nested marks) is sent to a Server Action, React 19 can hand parts
- * of it to the server as "temporary references" — lazy proxies that throw
- * when Prisma introspects them (`Cannot access toStringTag`). A structural
- * clone collapses them back to plain data before anything persists it.
+ * A section body authored in CKEditor and stored as an HTML string.
+ * The renderer sanitises this again on the way out (`src/lib/render/sanitize.ts`);
+ * the cap here just stops a pathological payload from reaching the database.
+ */
+export const sectionHtmlBody = z
+  .string()
+  .max(500_000, "Section content is too large")
+  .transform((s) => s.trim());
+
+/**
+ * Legacy ProseMirror document node — kept only for the one-off body migration
+ * script (`scripts/migrate-section-bodies.ts`) and its tests. New writes use
+ * `sectionHtmlBody`.
  */
 export const proseMirrorDoc = z
   .object({ type: z.literal("doc"), content: z.array(z.any()).optional() })
@@ -26,7 +32,7 @@ export const sectionTemplateInput = z.object({
   productId: z.string().min(1),
   title: z.string().min(1, "Title is required").max(200),
   order: z.number().int().min(0).default(0),
-  body: proseMirrorDoc,
+  body: sectionHtmlBody,
 });
 export type SectionTemplateInput = z.infer<typeof sectionTemplateInput>;
 

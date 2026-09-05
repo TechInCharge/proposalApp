@@ -22,7 +22,7 @@ export function SectionsPanel({
   const [pending, start] = useTransition();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftTitle, setDraftTitle] = useState("");
-  const [draftBody, setDraftBody] = useState<unknown>(null);
+  const [draftBody, setDraftBody] = useState<unknown>("");
   const [refreshNote, setRefreshNote] = useState<string | null>(null);
 
   function refresh() {

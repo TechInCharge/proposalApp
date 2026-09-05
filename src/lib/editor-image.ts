@@ -1,24 +1,19 @@
-"use server";
-
-import { requireUser } from "@/lib/rbac";
 import { saveFile } from "@/lib/storage";
 
 const ALLOWED = new Set(["png", "jpg", "jpeg", "gif", "webp", "svg"]);
+const MAX_BYTES = 8 * 1024 * 1024;
 
 /**
- * Store an image dropped/pasted/picked in the rich-text editor and return a
- * URL to reference it by. Used for both section-template and per-proposal
- * section editing, so images live under a shared prefix.
+ * Validate and store an image picked/pasted/dropped in the section editor.
+ * Shared by the CKEditor upload route. Auth is enforced by the caller.
  */
-export async function uploadEditorImage(
-  form: FormData,
+export async function storeEditorImage(
+  file: unknown,
 ): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
-  await requireUser();
-  const file = form.get("file");
   if (!(file instanceof File) || file.size === 0) {
     return { ok: false, error: "No file provided" };
   }
-  if (file.size > 8 * 1024 * 1024) {
+  if (file.size > MAX_BYTES) {
     return { ok: false, error: "Image must be under 8 MB" };
   }
   const ext = (file.name.split(".").pop() ?? "png").toLowerCase();

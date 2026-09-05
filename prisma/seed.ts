@@ -3,15 +3,15 @@ import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
-/** Minimal TipTap/ProseMirror doc helper. */
+/** Section bodies are HTML strings (CKEditor format). */
 function doc(...paragraphs: string[]) {
-  return {
-    type: "doc",
-    content: paragraphs.map((text) => ({
-      type: "paragraph",
-      content: text ? [{ type: "text", text }] : [],
-    })),
-  };
+  return paragraphs
+    .map((text) =>
+      text
+        ? `<p>${text.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</p>`
+        : "<p>&nbsp;</p>",
+    )
+    .join("");
 }
 
 async function main() {

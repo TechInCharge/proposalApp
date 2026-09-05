@@ -34,7 +34,7 @@ body {
   font-family: var(--font-inter), Arial, Helvetica, sans-serif;
 }
 
-/* Rendered proposal / TipTap content */
+/* Rendered proposal preview content (server-assembled HTML) */
 .prose-doc h1 { font-size: 1.5rem; font-weight: 700; margin: 1rem 0 0.5rem; }
 .prose-doc h2 { font-size: 1.25rem; font-weight: 700; margin: 1rem 0 0.5rem; }
 .prose-doc h3 { font-size: 1.1rem; font-weight: 600; margin: 0.75rem 0 0.5rem; }
@@ -51,19 +51,33 @@ body {
 .prose-doc img { max-width: 100%; height: auto; border-radius: 6px; margin: 0.5rem 0; }
 .prose-doc img.ProseMirror-selectednode { outline: 2px solid var(--color-brand); }
 .prose-doc mark { border-radius: 3px; padding: 0.05em 0.15em; }
-.prose-doc .tableWrapper { overflow-x: auto; margin: 0.75rem 0; }
+.prose-doc figure { margin: 0.75rem 0; overflow-x: auto; }
 .prose-doc table { border-collapse: collapse; width: 100%; margin: 0.75rem 0; }
 .prose-doc th, .prose-doc td {
   border: 1px solid #cbd5e1; padding: 6px 10px; text-align: left; vertical-align: top;
-  min-width: 3rem; position: relative;
 }
 .prose-doc th { background: #f1f5f9; font-weight: 600; }
-.prose-doc .selectedCell::after {
-  content: ""; position: absolute; inset: 0;
-  background: color-mix(in srgb, var(--color-brand) 14%, transparent); pointer-events: none;
+
+/* CKEditor 5 section editor — size and align its chrome with the app theme */
+.section-editor .ck-editor__editable_inline {
+  min-height: 300px;
+  max-height: 620px;
+  overflow-y: auto;
 }
-.prose-doc .column-resize-handle {
-  position: absolute; right: -2px; top: 0; bottom: -2px; width: 4px;
-  background: var(--color-brand); cursor: col-resize;
+.section-editor .ck.ck-editor__main > .ck-editor__editable {
+  background: #fff;
+  border-color: rgb(203 213 225);
 }
-.prose-doc.ProseMirror { -webkit-user-select: text; user-select: text; }
+.section-editor .ck.ck-toolbar {
+  border-color: rgb(203 213 225);
+  background: rgb(248 250 252);
+}
+.section-editor .ck-editor__editable_inline:focus {
+  border-color: var(--color-brand);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-brand) 20%, transparent);
+}
+:root {
+  --ck-color-focus-border: var(--color-brand);
+  --ck-color-button-on-background: var(--color-brand-light);
+  --ck-color-button-on-color: var(--color-brand-dark);
+}

@@ -1,36 +1,29 @@
 import { describe, it, expect } from "vitest";
-import { proseMirrorDoc, boqItemInput } from "./validators";
+import { sectionHtmlBody, proseMirrorDoc, boqItemInput } from "./validators";
 
-describe("proseMirrorDoc", () => {
-  it("accepts a rich doc (tables, images, marks) and returns a deep clone", () => {
-    const input = {
-      type: "doc" as const,
-      content: [
-        { type: "image", attrs: { src: "/api/files/x.png" } },
-        {
-          type: "table",
-          content: [
-            {
-              type: "tableRow",
-              content: [
-                { type: "tableCell", content: [{ type: "paragraph" }] },
-              ],
-            },
-          ],
-        },
-      ],
-    };
-    const out = proseMirrorDoc.parse(input);
-    expect(out).toEqual(input);
-    // must be a fresh structure — a Server Action arg may carry lazy proxies
-    expect(out).not.toBe(input);
-    expect((out as unknown as { content: unknown[] }).content).not.toBe(
-      input.content,
+describe("sectionHtmlBody", () => {
+  it("accepts and trims an HTML string", () => {
+    expect(sectionHtmlBody.parse("  <p>Hello {{customer.name}}</p>  ")).toBe(
+      "<p>Hello {{customer.name}}</p>",
     );
   });
 
-  it("rejects a non-doc value", () => {
-    expect(proseMirrorDoc.safeParse({ type: "paragraph" }).success).toBe(false);
+  it("accepts an empty body", () => {
+    expect(sectionHtmlBody.parse("")).toBe("");
+  });
+
+  it("rejects a non-string and an oversized payload", () => {
+    expect(sectionHtmlBody.safeParse({ type: "doc" }).success).toBe(false);
+    expect(sectionHtmlBody.safeParse("x".repeat(500_001)).success).toBe(false);
+  });
+});
+
+describe("proseMirrorDoc (legacy, migration only)", () => {
+  it("still parses an old doc into a plain clone", () => {
+    const input = { type: "doc" as const, content: [{ type: "paragraph" }] };
+    const out = proseMirrorDoc.parse(input);
+    expect(out).toEqual(input);
+    expect(out).not.toBe(input);
   });
 });
 
