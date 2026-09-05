@@ -44,6 +44,43 @@ Add teammates from the app itself: **Users** in the nav (admin only) →
 **New user**. There's no other way to create an account — the seed script
 only ever creates the one bootstrap admin.
 
+## Deploy to Railway
+
+The app deploys as-is — no code changes needed beyond what's already in the
+repo (`nixpacks.toml` gives Puppeteer's Chromium the system libraries it
+needs to launch; `npm start` runs `prisma migrate deploy` before serving).
+
+1. **New Project** on [railway.app](https://railway.app) → **Deploy from GitHub repo** → pick this repo.
+2. **+ New** → **Database** → **Add PostgreSQL**. Railway sets that service's
+   `DATABASE_URL`; reference it from the app service's variables as
+   `${{Postgres.DATABASE_URL}}` (Railway's variable-reference syntax) so it
+   always points at the right instance.
+3. On the app service → **Variables**, add:
+   - `AUTH_SECRET` — generate a fresh one (`openssl rand -base64 33`); **do not
+     reuse** the value from your local `.env`
+   - `AUTH_TRUST_HOST` = `true`
+   - `AUTH_URL` — the app's public Railway URL (Settings → Networking →
+     Generate Domain gives you this first; circle back and set it once you
+     have it)
+   - `STORAGE_DIR` = `/data/storage`
+4. **Settings → Volumes** → add a volume mounted at `/data`. Without this,
+   uploaded logos and generated DOCX/PDF files disappear on the next deploy.
+5. **Settings → Networking → Generate Domain** for a public URL (or attach
+   your own domain here). Set that URL as `AUTH_URL` (step 3) if you haven't
+   already.
+6. Deploy. First deploy takes a few minutes (Puppeteer downloads Chromium
+   during `npm install`).
+7. Create the first account: Railway dashboard → app service → **Command**
+   (one-off shell) → `npm run db:seed`. This also creates a demo product and
+   a default brand profile — fine to keep, edit, or archive the demo product
+   from the app once you're in. Sign in as `admin@example.com` / `admin1234`
+   and **immediately** change that password (Users → Admin → set a new
+   password), or create your own admin from **Users** and delete the seeded
+   one.
+
+If PDF generation ever fails to launch Chromium on Railway, set
+`PUPPETEER_EXECUTABLE_PATH` (see `.env.example`) rather than redeploying code.
+
 ## Scripts
 
 | Script | Purpose |
@@ -62,7 +99,7 @@ only ever creates the one bootstrap admin.
 prisma/schema.prisma     Data model (users, products, templates, proposals, BoQ, branding)
 prisma/seed.ts           Seed script
 src/auth.ts              Auth.js config
-src/middleware.ts        Route protection
+src/proxy.ts             Route protection
 src/lib/prisma.ts        Prisma singleton
 src/lib/rbac.ts          requireUser / requireRole
 src/lib/placeholders.ts  {{token}} resolution for section bodies

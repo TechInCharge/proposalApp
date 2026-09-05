@@ -13,6 +13,10 @@ const credentialsSchema = z.object({
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
+  // Required behind a reverse proxy (Railway, Render, etc.) — without it
+  // Auth.js rejects the proxy's forwarded host as untrusted. Vercel sets this
+  // for you automatically; other hosts need it explicit.
+  trustHost: true,
   // Credentials provider requires JWT sessions (no DB session row is created).
   session: { strategy: "jwt" },
   pages: {

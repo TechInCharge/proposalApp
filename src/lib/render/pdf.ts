@@ -12,6 +12,9 @@ export async function htmlToPdf(
 ): Promise<Buffer> {
   const browser = await puppeteer.launch({
     headless: true,
+    // Escape hatch for hosts where the bundled Chromium won't launch —
+    // point this at a system Chromium/Chrome binary without a redeploy.
+    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
   });
   try {
