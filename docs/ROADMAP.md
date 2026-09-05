@@ -15,7 +15,8 @@
 ## Done — Phase 1 MVP (v0.2.0)
 
 - [x] Products admin: list / create / edit / archive (ADMIN)
-- [x] Section templates: TipTap editor, ordering, placeholder palette, versioning
+- [x] Section templates: full rich-text editor (formatting, colour, alignment,
+      lists, links, image upload, tables), ordering, placeholder palette, versioning
 - [x] Customers: list / create / edit, logo upload
 - [x] Storage adapter (`src/lib/storage.ts`) — local disk now, S3 interface
 - [x] Proposal builder workspace (Details / Products / Sections / BoQ / Generate)

@@ -61,6 +61,29 @@ function esc(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
+/**
+ * Rich-text images are stored as `/api/files/…` URLs, which need a logged-in
+ * session — the PDF renderer (Puppeteer) and the DOCX writer can't fetch them.
+ * Inline every such image as a base64 data URI before handing HTML off.
+ */
+async function inlineFileImages(html: string): Promise<string> {
+  const srcs = new Set<string>();
+  const re = /<img\b[^>]*\bsrc="([^"]+)"/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(html)) !== null) {
+    if (m[1].startsWith("/api/files/")) srcs.add(m[1]);
+  }
+  if (srcs.size === 0) return html;
+  const pairs = await Promise.all(
+    [...srcs].map(async (s) => [s, await toDataUri(s)] as const),
+  );
+  let out = html;
+  for (const [s, data] of pairs) {
+    if (data) out = out.split(`src="${s}"`).join(`src="${data}"`);
+  }
+  return out;
+}
+
 function boqTableHtml(items: AssembleInput["boqItems"]): string {
   if (!items.length) return "<p><em>No items.</em></p>";
   const head = `<tr>${["#", "Part No.", "Description", "Qty"]
@@ -99,7 +122,7 @@ export async function assembleProposalHtml(
   const boqHtml = boqTableHtml(input.boqItems);
 
   let boqRendered = false;
-  const sectionHtml = input.sections
+  let sectionHtml = input.sections
     .map((s) => {
       const { doc, missing: m } = resolvePlaceholders(s.body, ctx);
       m.forEach((t) => missing.add(t));
@@ -111,6 +134,7 @@ export async function assembleProposalHtml(
       return `<section class="doc-section"><h2>${esc(s.title)}</h2>${body}</section>`;
     })
     .join("\n");
+  sectionHtml = await inlineFileImages(sectionHtml);
 
   // If no section embedded the BoQ but items exist, append it as a final section.
   const boqSection =
@@ -159,6 +183,25 @@ export async function assembleProposalHtml(
     table.boq td { border-top: 1px solid #e4e4e7; padding: 8px 10px; background: #fff; }
     p { margin: 6px 0; }
     ul, ol { margin: 6px 0 6px 20px; }
+    h4 { color: var(--secondary); font-weight: 700; font-size: 13px; margin: 10px 0 4px; }
+    /* rich-text content authored in the section editor */
+    .doc-section a { color: var(--primary); text-decoration: underline; }
+    .doc-section img { max-width: 100%; height: auto; border-radius: 6px; margin: 6px 0; page-break-inside: avoid; }
+    .doc-section blockquote { border-left: 3px solid var(--primary); margin: 8px 0; padding-left: 12px; color: #475569; }
+    .doc-section pre { background: #f1f5f9; border-radius: 6px; padding: 10px 12px; overflow-x: auto; font-size: 10.5px; }
+    .doc-section code { background: #f1f5f9; border-radius: 4px; padding: 1px 4px; }
+    .doc-section pre code { background: none; padding: 0; }
+    .doc-section hr { border: 0; border-top: 1px solid #cbd5e1; margin: 10px 0; }
+    .doc-section mark { border-radius: 3px; padding: 0.05em 0.15em; }
+    .doc-section table.doc-table, .doc-section .tableWrapper table {
+      border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 11px; table-layout: auto;
+    }
+    .doc-section table.doc-table th, .doc-section table.doc-table td,
+    .doc-section .tableWrapper th, .doc-section .tableWrapper td {
+      border: 1px solid #cbd5e1; padding: 6px 8px; text-align: left; vertical-align: top;
+    }
+    .doc-section table.doc-table th, .doc-section .tableWrapper th { background: #f1f5f9; font-weight: 600; }
+    .doc-section .tableWrapper { overflow-x: auto; }
   </style></head><body>
   <div class="cover">
     <div class="accent-bar"></div>

@@ -6,6 +6,27 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **Full rich-text section editor.** Replaces the six-button toolbar with a
+  Word-style one: paragraph/H1–H4, font size, **bold/italic/underline/
+  strikethrough/code/super-/subscript**, text colour + highlight, left/
+  centre/right/justify alignment, bullet & numbered lists, blockquote, code
+  block, horizontal rule, links, **image upload** (button, paste or drag —
+  stored server-side, embedded as base64 in the generated PDF/DOCX), and
+  **tables** with a contextual toolbar (add/remove rows & columns, toggle
+  header row, merge/split, delete). The renderer, document CSS (PDF/DOCX/
+  preview) and placeholder resolution all handle the new node types;
+  `{{tokens}}` work inside table cells.
+
+### Fixed
+
+- Saving a section whose body contains a table (or other deeply nested
+  content) 500'd with `Cannot access toStringTag … temporary client
+  reference`: React 19 hands parts of a large Server Action argument to the
+  server as lazy proxies that Prisma can't introspect. `proseMirrorDoc` now
+  deep-clones to plain JSON on parse.
+
 ## [0.8.0] - 2026-09-05
 
 ### Added

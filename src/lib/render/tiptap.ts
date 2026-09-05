@@ -3,11 +3,9 @@
 // section body when the error was swallowed). The server build renders via
 // happy-dom and works under `next` server actions, standalone scripts and tests.
 import { generateHTML } from "@tiptap/html/server";
-import StarterKit from "@tiptap/starter-kit";
+import { editorExtensions, EMPTY_DOC } from "@/lib/editor-extensions";
 
-export const editorExtensions = [StarterKit];
-
-const EMPTY_DOC = { type: "doc", content: [{ type: "paragraph" }] };
+export { editorExtensions };
 
 function isProseMirrorDoc(v: unknown): v is object {
   return !!v && typeof v === "object" && (v as { type?: string }).type === "doc";

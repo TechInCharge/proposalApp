@@ -38,8 +38,32 @@ body {
 .prose-doc h1 { font-size: 1.5rem; font-weight: 700; margin: 1rem 0 0.5rem; }
 .prose-doc h2 { font-size: 1.25rem; font-weight: 700; margin: 1rem 0 0.5rem; }
 .prose-doc h3 { font-size: 1.1rem; font-weight: 600; margin: 0.75rem 0 0.5rem; }
+.prose-doc h4 { font-size: 1rem; font-weight: 600; margin: 0.75rem 0 0.4rem; }
 .prose-doc p { margin: 0.5rem 0; line-height: 1.6; }
 .prose-doc ul { list-style: disc; padding-left: 1.5rem; margin: 0.5rem 0; }
 .prose-doc ol { list-style: decimal; padding-left: 1.5rem; margin: 0.5rem 0; }
+.prose-doc a { color: var(--color-brand-dark); text-decoration: underline; }
+.prose-doc blockquote { border-left: 3px solid var(--color-brand); padding-left: 0.9rem; margin: 0.75rem 0; color: #475569; }
+.prose-doc pre { background: #f1f5f9; border-radius: 6px; padding: 0.75rem 1rem; overflow-x: auto; font-size: 0.85em; }
+.prose-doc code { background: #f1f5f9; border-radius: 4px; padding: 0.1em 0.35em; font-size: 0.9em; }
+.prose-doc pre code { background: none; padding: 0; }
+.prose-doc hr { border: 0; border-top: 1px solid #cbd5e1; margin: 1rem 0; }
+.prose-doc img { max-width: 100%; height: auto; border-radius: 6px; margin: 0.5rem 0; }
+.prose-doc img.ProseMirror-selectednode { outline: 2px solid var(--color-brand); }
+.prose-doc mark { border-radius: 3px; padding: 0.05em 0.15em; }
+.prose-doc .tableWrapper { overflow-x: auto; margin: 0.75rem 0; }
 .prose-doc table { border-collapse: collapse; width: 100%; margin: 0.75rem 0; }
-.prose-doc th, .prose-doc td { border: 1px solid #cbd5e1; padding: 6px 10px; text-align: left; }
+.prose-doc th, .prose-doc td {
+  border: 1px solid #cbd5e1; padding: 6px 10px; text-align: left; vertical-align: top;
+  min-width: 3rem; position: relative;
+}
+.prose-doc th { background: #f1f5f9; font-weight: 600; }
+.prose-doc .selectedCell::after {
+  content: ""; position: absolute; inset: 0;
+  background: color-mix(in srgb, var(--color-brand) 14%, transparent); pointer-events: none;
+}
+.prose-doc .column-resize-handle {
+  position: absolute; right: -2px; top: 0; bottom: -2px; width: 4px;
+  background: var(--color-brand); cursor: col-resize;
+}
+.prose-doc.ProseMirror { -webkit-user-select: text; user-select: text; }

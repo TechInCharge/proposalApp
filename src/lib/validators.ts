@@ -1,9 +1,18 @@
 import { z } from "zod";
 
-/** A permissive ProseMirror document node. */
+/**
+ * A permissive ProseMirror document node.
+ *
+ * The `.transform` deep-clones to plain JSON. When a rich body (tables,
+ * images, nested marks) is sent to a Server Action, React 19 can hand parts
+ * of it to the server as "temporary references" — lazy proxies that throw
+ * when Prisma introspects them (`Cannot access toStringTag`). A structural
+ * clone collapses them back to plain data before anything persists it.
+ */
 export const proseMirrorDoc = z
   .object({ type: z.literal("doc"), content: z.array(z.any()).optional() })
-  .passthrough();
+  .passthrough()
+  .transform((v) => JSON.parse(JSON.stringify(v)) as { type: "doc"; [k: string]: unknown });
 
 export const productInput = z.object({
   name: z.string().min(1, "Name is required").max(200),

@@ -88,4 +88,73 @@ describe("assembleProposalHtml", () => {
     const { html } = await assembleProposalHtml(baseInput());
     expect(html).not.toContain("Attn:");
   });
+
+  it("renders rich-text tables, images, alignment and colour from a section body", async () => {
+    const richBody = {
+      type: "doc",
+      content: [
+        {
+          type: "heading",
+          attrs: { level: 3, textAlign: "center" },
+          content: [{ type: "text", text: "Specs" }],
+        },
+        {
+          type: "paragraph",
+          content: [
+            {
+              type: "text",
+              marks: [{ type: "textStyle", attrs: { color: "#5636CE" } }],
+              text: "coloured",
+            },
+          ],
+        },
+        { type: "image", attrs: { src: "https://example.test/diagram.png", alt: "d" } },
+        {
+          type: "table",
+          content: [
+            {
+              type: "tableRow",
+              content: [
+                {
+                  type: "tableHeader",
+                  content: [{ type: "paragraph", content: [{ type: "text", text: "Metric" }] }],
+                },
+                {
+                  type: "tableHeader",
+                  content: [{ type: "paragraph", content: [{ type: "text", text: "Value" }] }],
+                },
+              ],
+            },
+            {
+              type: "tableRow",
+              content: [
+                {
+                  type: "tableCell",
+                  content: [{ type: "paragraph", content: [{ type: "text", text: "Throughput" }] }],
+                },
+                {
+                  type: "tableCell",
+                  content: [
+                    { type: "paragraph", content: [{ type: "text", text: "for {{customer.name}}" }] },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    const { html, missingTokens } = await assembleProposalHtml(
+      baseInput({ sections: [{ id: "s1", title: "Details", body: richBody }] }),
+    );
+    expect(html).toContain("text-align: center");
+    expect(html).toContain("color: #5636CE");
+    expect(html).toContain('<img class="doc-image"');
+    expect(html).toContain("https://example.test/diagram.png"); // external src untouched
+    expect(html).toMatch(/<table[^>]*class="doc-table"/);
+    expect(html).toContain("<th");
+    expect(html).toContain("Throughput");
+    expect(html).toContain("for Acme Co."); // token inside a table cell resolved
+    expect(missingTokens).toEqual([]);
+  });
 });
