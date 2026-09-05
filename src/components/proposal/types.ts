@@ -32,6 +32,12 @@ export interface WorkspaceBoqItem {
   quantity: number;
 }
 
+export interface BoqCatalogOption {
+  id: string;
+  partNumber: string;
+  description: string;
+}
+
 export interface WorkspaceProduct {
   id: string;
   name: string;

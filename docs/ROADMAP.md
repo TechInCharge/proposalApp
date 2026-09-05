@@ -52,6 +52,10 @@
       user was the seed script. Guards: can't delete/demote yourself away from
       the last remaining admin, can't delete a user who has created proposals
       (friendly error instead of a raw FK violation), duplicate email handled.
+- [x] **Reusable BoQ library** — `BoqCatalogItem` (shared, unique on
+      `(partNumber, description)`). `saveBoq` auto-captures rows into it;
+      BoQ tab has an "Add from library" search-picker; `/boq-items` ADMIN
+      page curates it. Proposal `BoqItem` rows stay independent snapshots.
 - [ ] Playwright happy-path test
 
 ## Known gaps / tech debt

@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { sectionHtmlBody, proseMirrorDoc, boqItemInput } from "./validators";
+import {
+  sectionHtmlBody,
+  proseMirrorDoc,
+  boqItemInput,
+  boqCatalogItemInput,
+} from "./validators";
 
 describe("sectionHtmlBody", () => {
   it("accepts and trims an HTML string", () => {
@@ -24,6 +29,17 @@ describe("proseMirrorDoc (legacy, migration only)", () => {
     const out = proseMirrorDoc.parse(input);
     expect(out).toEqual(input);
     expect(out).not.toBe(input);
+  });
+});
+
+describe("boqCatalogItemInput", () => {
+  it("trims, defaults partNumber to '', requires a description", () => {
+    expect(
+      boqCatalogItemInput.parse({ partNumber: "  A-1 ", description: "  Widget " }),
+    ).toEqual({ partNumber: "A-1", description: "Widget" });
+    expect(boqCatalogItemInput.parse({ description: "Widget" }).partNumber).toBe("");
+    expect(boqCatalogItemInput.safeParse({ description: "   " }).success).toBe(false);
+    expect(boqCatalogItemInput.safeParse({}).success).toBe(false);
   });
 });
 

@@ -13,24 +13,29 @@ export default async function EditProposalPage({
   await requireUser();
   const { id } = await params;
 
-  const [proposal, customers, brandProfiles, products] = await Promise.all([
-    prisma.proposal.findUnique({
-      where: { id },
-      include: {
-        customer: true,
-        products: true,
-        sections: { orderBy: { order: "asc" } },
-        boqItems: { orderBy: { order: "asc" } },
-      },
-    }),
-    prisma.customer.findMany({ orderBy: { name: "asc" } }),
-    prisma.brandProfile.findMany({ orderBy: { name: "asc" } }),
-    prisma.product.findMany({
-      where: { archived: false },
-      orderBy: { name: "asc" },
-      include: { _count: { select: { sections: true } } },
-    }),
-  ]);
+  const [proposal, customers, brandProfiles, products, boqCatalog] =
+    await Promise.all([
+      prisma.proposal.findUnique({
+        where: { id },
+        include: {
+          customer: true,
+          products: true,
+          sections: { orderBy: { order: "asc" } },
+          boqItems: { orderBy: { order: "asc" } },
+        },
+      }),
+      prisma.customer.findMany({ orderBy: { name: "asc" } }),
+      prisma.brandProfile.findMany({ orderBy: { name: "asc" } }),
+      prisma.product.findMany({
+        where: { archived: false },
+        orderBy: { name: "asc" },
+        include: { _count: { select: { sections: true } } },
+      }),
+      prisma.boqCatalogItem.findMany({
+        orderBy: { description: "asc" },
+        take: 500,
+      }),
+    ]);
 
   if (!proposal) notFound();
 
@@ -80,6 +85,11 @@ export default async function EditProposalPage({
           partNumber: b.partNumber ?? "",
           description: b.description,
           quantity: b.quantity,
+        }))}
+        boqCatalog={boqCatalog.map((c) => ({
+          id: c.id,
+          partNumber: c.partNumber,
+          description: c.description,
         }))}
         customers={customers.map((c) => ({ id: c.id, name: c.name }))}
         brandProfiles={brandProfiles.map((b) => ({

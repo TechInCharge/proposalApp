@@ -87,6 +87,19 @@ export type BoqItemInput = z.infer<typeof boqItemInput>;
 
 export const boqTableInput = z.array(boqItemInput);
 
+export const boqCatalogItemInput = z.object({
+  partNumber: z
+    .string()
+    .max(120)
+    .default("")
+    .transform((v) => v.trim()),
+  description: z
+    .string()
+    .transform((v) => v.trim())
+    .pipe(z.string().min(1, "Description is required").max(500)),
+});
+export type BoqCatalogItemInput = z.infer<typeof boqCatalogItemInput>;
+
 const roleEnum = z.enum(["ADMIN", "AUTHOR"]);
 
 export const createUserInput = z.object({

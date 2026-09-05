@@ -87,6 +87,17 @@ async function main() {
     },
   });
 
+  await prisma.boqCatalogItem.createMany({
+    skipDuplicates: true,
+    data: [
+      { partNumber: "NGFW-1000", description: "Perimeter Firewall NGFW-1000 appliance" },
+      { partNumber: "NGFW-1000-HA", description: "NGFW-1000 high-availability secondary appliance" },
+      { partNumber: "SUB-THREAT-1Y", description: "Threat prevention subscription (1 year)" },
+      { partNumber: "SFP-10G-SR", description: "10GbE SFP+ SR transceiver" },
+      { partNumber: "", description: "Professional services — installation & configuration (day)" },
+    ],
+  });
+
   console.log("Seeded:", {
     admin: admin.email,
     adminPassword,

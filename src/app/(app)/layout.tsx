@@ -25,6 +25,7 @@ export default async function AppLayout({
             <NavLink href="/proposals">Proposals</NavLink>
             <NavLink href="/customers">Customers</NavLink>
             {isAdmin && <NavLink href="/products">Products</NavLink>}
+            {isAdmin && <NavLink href="/boq-items">BoQ Library</NavLink>}
             {isAdmin && <NavLink href="/brand-profiles">Branding</NavLink>}
             {isAdmin && <NavLink href="/users">Users</NavLink>}
           </nav>

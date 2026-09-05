@@ -13,6 +13,7 @@ import { SectionsPanel } from "./SectionsPanel";
 import { BoqPanel } from "./BoqPanel";
 import { GeneratePanel } from "./GeneratePanel";
 import type {
+  BoqCatalogOption,
   Option,
   ProposalStatus,
   WorkspaceBoqItem,
@@ -29,6 +30,7 @@ export function ProposalWorkspace(props: {
   selectedProductIds: string[];
   sections: WorkspaceSection[];
   boqItems: WorkspaceBoqItem[];
+  boqCatalog: BoqCatalogOption[];
   customers: Option[];
   brandProfiles: Option[];
   products: WorkspaceProduct[];
@@ -71,7 +73,11 @@ export function ProposalWorkspace(props: {
         <SectionsPanel proposalId={props.proposal.id} sections={props.sections} />
       )}
       {tab === "BoQ" && (
-        <BoqPanel proposalId={props.proposal.id} items={props.boqItems} />
+        <BoqPanel
+          proposalId={props.proposal.id}
+          items={props.boqItems}
+          catalog={props.boqCatalog}
+        />
       )}
       {tab === "Generate" && (
         <GeneratePanel

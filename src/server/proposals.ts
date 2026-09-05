@@ -11,6 +11,7 @@ import {
   sectionHtmlBody,
   type ProposalInput,
 } from "@/lib/validators";
+import { captureBoqItems } from "@/server/boqCatalog";
 import type { ProposalStatus } from "@prisma/client";
 
 function proposalWriteData(parsed: ProposalInput) {
@@ -169,6 +170,8 @@ export async function saveBoq(proposalId: string, rows: unknown) {
       });
     }
   });
+  // Grow the shared library from what people actually quote.
+  await captureBoqItems(parsed.data);
   revalidatePath(`/proposals/${proposalId}/edit`);
   return { ok: true as const };
 }

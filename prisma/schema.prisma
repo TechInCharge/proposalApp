@@ -229,6 +229,22 @@ model ProposalSection {
   @@index([proposalId, order])
 }
 
+// Reusable Bill of Quantities line item — the shared pick-list of "things we
+// quote". A proposal's BoqItem rows are still independent snapshots (quantity
+// is per-proposal, and later edits here don't touch existing proposals).
+// `partNumber` defaults to "" so the [partNumber, description] pair can be
+// unique even when there is no part number.
+model BoqCatalogItem {
+  id          String   @id @default(cuid())
+  partNumber  String   @default("")
+  description String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([partNumber, description])
+  @@index([description])
+}
+
 // Bill of Quantities line item.
 // Bill of Quantities line item — a licensed/physical item, its part number,
 // description and quantity. No pricing: technical proposals here don't carry

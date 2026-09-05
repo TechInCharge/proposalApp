@@ -6,6 +6,17 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **Reusable BoQ library.** Items added to any proposal's Bill of Quantities
+  are auto-saved to a shared library on Save. The BoQ tab has an **Add from
+  library** picker (search by part number or description) so you pick an
+  existing item instead of retyping it; quantity stays per-proposal. New
+  **BoQ Library** admin page (`/boq-items`, in the top nav) to search,
+  rename and delete library entries — editing there does not touch proposals
+  that already used an item. New `BoqCatalogItem` model, unique on
+  `(partNumber, description)`; additive migration.
+
 ### Changed
 
 - **Section editor is now CKEditor 5** (replacing TipTap). Word-style toolbar:
