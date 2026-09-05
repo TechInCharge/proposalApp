@@ -12,6 +12,7 @@ import {
   type ProposalInput,
 } from "@/lib/validators";
 import { captureBoqItems } from "@/server/boqCatalog";
+import { offloadDataUriImages } from "@/lib/render/images";
 import type { ProposalStatus } from "@prisma/client";
 
 function proposalWriteData(parsed: ProposalInput) {
@@ -130,7 +131,7 @@ export async function updateProposalSection(
   if (data.body !== undefined) {
     const parsed = sectionHtmlBody.safeParse(data.body);
     if (!parsed.success) return { ok: false as const, error: "Invalid body" };
-    patch.body = parsed.data as Prisma.InputJsonValue;
+    patch.body = (await offloadDataUriImages(parsed.data)) as Prisma.InputJsonValue;
   }
   const s = await prisma.proposalSection.update({
     where: { id: sectionId },

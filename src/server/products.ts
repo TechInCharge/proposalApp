@@ -11,6 +11,7 @@ import {
   type ProductInput,
 } from "@/lib/validators";
 import { extractTokens } from "@/lib/placeholders";
+import { offloadDataUriImages } from "@/lib/render/images";
 
 /** Distinct {{tokens}} used anywhere in an HTML section body. */
 function tokensFromBody(body: string): string[] {
@@ -58,8 +59,9 @@ export async function saveSectionTemplate(
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
   const { productId, title, order } = parsed.data;
-  const body = parsed.data.body as Prisma.InputJsonValue;
-  const placeholders = tokensFromBody(parsed.data.body);
+  const cleanBody = await offloadDataUriImages(parsed.data.body);
+  const body = cleanBody as Prisma.InputJsonValue;
+  const placeholders = tokensFromBody(cleanBody);
 
   if (id) {
     const existing = await prisma.sectionTemplate.findUnique({ where: { id } });

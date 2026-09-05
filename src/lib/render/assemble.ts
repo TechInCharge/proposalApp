@@ -1,5 +1,6 @@
 import { buildContext, resolvePlaceholdersInHtml } from "@/lib/placeholders";
 import { sectionBodyToHtml } from "@/lib/render/section-html";
+import { sanitizeContentImages } from "@/lib/render/images";
 import { toDataUri } from "@/lib/storage";
 import { interFontFaceCss } from "@/lib/render/fonts";
 
@@ -67,6 +68,10 @@ export function esc(s: string): string {
  * Inline every such image as a base64 data URI before handing HTML off.
  */
 export async function inlineFileImages(html: string): Promise<string> {
+  // Normalise/repair pasted <img> sources first — a malformed data: URI here
+  // makes the DOCX writer throw "Invalid base64 string".
+  html = sanitizeContentImages(html);
+
   const srcs = new Set<string>();
   const re = /<img\b[^>]*\bsrc="([^"]+)"/gi;
   let m: RegExpExecArray | null;

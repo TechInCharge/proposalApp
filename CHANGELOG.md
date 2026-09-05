@@ -8,6 +8,17 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- **Generation no longer fails with "Invalid base64 string" after pasting
+  images into a section.** Pasted images arrive as `data:` URIs; the DOCX
+  writer throws unless the URI is a clean single-line `data:<simple-mime>;base64,…`
+  (a payload with newlines, a MIME type with digits/dots, a percent-encoded
+  SVG, or a `blob:` URL all broke it). New `src/lib/render/images.ts`:
+  `sanitizeContentImages` repairs/normalises every `<img>` at render time
+  (re-encodes the payload, sniffs the real type, drops the undecodable);
+  `offloadDataUriImages` runs on section save, writing pasted images to
+  storage and swapping in `/api/files/…` URLs so base64 blobs never reach the
+  database. Existing sections with a broken paste now generate fine, and are
+  cleaned permanently on the next save.
 - **Generated DOCX now tracks the PDF/HTML formatting.** The DOCX writer
   (`@turbodocx/html-to-docx`) ignores `<style>` blocks and only reads inline
   styles, so feeding it the PDF's stylesheet-driven HTML produced an unstyled
