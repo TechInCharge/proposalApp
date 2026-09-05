@@ -43,7 +43,6 @@
 - [x] **BoQ has no pricing at all** — went further than a toggle: removed
       `unit`, `unitPrice`, `showPricing`, `currency` entirely. BoQ rows are
       Part Number / Description / Quantity (integer) — that's the whole model.
-- [ ] Section template diff view (show what changed before refreshing)
 - [ ] Playwright happy-path test
 
 ## Known gaps / tech debt
@@ -65,6 +64,12 @@
 
 - [ ] Cover-page designer
 - [ ] Drag-and-drop section ordering across products
-- [ ] Review / approval workflow, comments
-- [ ] PDF watermarking for drafts
-- [ ] Full multi-tenant option (org isolation, billing) — if needed
+
+## Not doing
+
+Decided against, so future sessions don't re-suggest them:
+
+- Section template diff view before refreshing a proposal's sections
+- Review / approval workflow with comments
+- PDF watermarking for drafts
+- Multi-tenant support (org isolation, billing)
