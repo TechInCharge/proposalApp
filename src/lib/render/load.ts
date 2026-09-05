@@ -5,10 +5,17 @@ import {
   type AssembleInput,
   type AssembleResult,
 } from "@/lib/render/assemble";
+import { assembleProposalDocxHtml } from "@/lib/render/assemble-docx";
 
 export async function loadAndAssemble(
   proposalId: string,
-): Promise<(AssembleResult & { proposal: NonNullable<Awaited<ReturnType<typeof getProposal>>> }) | null> {
+): Promise<
+  | (AssembleResult & {
+      docxHtml: string;
+      proposal: NonNullable<Awaited<ReturnType<typeof getProposal>>>;
+    })
+  | null
+> {
   const proposal = await getProposal(proposalId);
   if (!proposal) return null;
 
@@ -49,8 +56,11 @@ export async function loadAndAssemble(
     })),
   };
 
-  const result = await assembleProposalHtml(input);
-  return { ...result, proposal };
+  const [result, docx] = await Promise.all([
+    assembleProposalHtml(input),
+    assembleProposalDocxHtml(input),
+  ]);
+  return { ...result, docxHtml: docx.html, proposal };
 }
 
 function getProposal(id: string) {

@@ -6,6 +6,18 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- **Generated DOCX now tracks the PDF/HTML formatting.** The DOCX writer
+  (`@turbodocx/html-to-docx`) ignores `<style>` blocks and only reads inline
+  styles, so feeding it the PDF's stylesheet-driven HTML produced an unstyled
+  document. Added a dedicated DOCX assembler (`assemble-docx.ts`) that resolves
+  brand colours to literals, pushes every visual rule inline, unwraps
+  CKEditor's `<figure>` wrappers, and gives tables real borders — cover,
+  headings, colour, tables and the branded BoQ table now carry over. The base
+  document font follows the brand profile. (Word has no equivalent for the
+  gray section cards / rounded corners, so those don't appear.)
+
 ### Added
 
 - **Reusable BoQ library.** Items added to any proposal's Bill of Quantities

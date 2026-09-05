@@ -4,6 +4,8 @@ export interface DocxOptions {
   title?: string;
   footerText?: string | null;
   showPageNumbers?: boolean;
+  /** Base document font. Element-level inline `font-family` still wins. */
+  font?: string | null;
 }
 
 /**
@@ -27,7 +29,7 @@ export async function htmlToDocxBuffer(
       footer: Boolean(footer),
       pageNumber: Boolean(opts.showPageNumbers),
       table: { row: { cantSplit: true } },
-      font: "Calibri",
+      font: opts.font?.trim() || "Calibri",
       fontSize: 22, // half-points => 11pt
     },
     footer,

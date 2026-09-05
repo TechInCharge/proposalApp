@@ -53,7 +53,7 @@ export const DEFAULT_BRAND: AssembleInput["brand"] = {
   showPageNumbers: true,
 };
 
-function esc(s: string): string {
+export function esc(s: string): string {
   return s
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -66,7 +66,7 @@ function esc(s: string): string {
  * session — the PDF renderer (Puppeteer) and the DOCX writer can't fetch them.
  * Inline every such image as a base64 data URI before handing HTML off.
  */
-async function inlineFileImages(html: string): Promise<string> {
+export async function inlineFileImages(html: string): Promise<string> {
   const srcs = new Set<string>();
   const re = /<img\b[^>]*\bsrc="([^"]+)"/gi;
   let m: RegExpExecArray | null;

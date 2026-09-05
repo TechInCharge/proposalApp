@@ -23,7 +23,7 @@ export async function generateProposal(id: string): Promise<GenerateResult> {
   const assembled = await loadAndAssemble(id);
   if (!assembled) return { ok: false, error: "Proposal not found" };
 
-  const { html, missingTokens, proposal } = assembled;
+  const { html, docxHtml, missingTokens, proposal } = assembled;
   if (!proposal.sections.some((s) => s.included)) {
     return { ok: false, error: "Add at least one section before generating." };
   }
@@ -38,10 +38,11 @@ export async function generateProposal(id: string): Promise<GenerateResult> {
         footerText: brand.footerText,
         showPageNumbers: brand.showPageNumbers,
       }),
-      htmlToDocxBuffer(html, {
+      htmlToDocxBuffer(docxHtml, {
         title: proposal.title,
         footerText: brand.footerText,
         showPageNumbers: brand.showPageNumbers,
+        font: brand.fontFamily,
       }),
     ]);
 
