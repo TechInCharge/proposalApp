@@ -49,9 +49,17 @@ function appendStyle(el: HTMLElement, css: string): void {
   el.setAttribute("style", cur ? `${cur};${css}` : css);
 }
 
+function parseStyle(style: string | null | undefined): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const part of (style ?? "").split(";")) {
+    const i = part.indexOf(":");
+    if (i > 0) out[part.slice(0, i).trim().toLowerCase()] = part.slice(i + 1).trim();
+  }
+  return out;
+}
+
 function cssWidthOf(style: string | null | undefined): string | null {
-  const m = /(?:^|;)\s*width\s*:\s*([^;]+)/i.exec(style ?? "");
-  const v = m?.[1].trim();
+  const v = parseStyle(style).width;
   return v && v !== "auto" ? v : null;
 }
 
@@ -60,15 +68,33 @@ function cssWidthOf(style: string | null | undefined): string | null {
  * image) or the <img> (inline), while `ImageSizeAttributes` writes the image's
  * *natural* pixel size to `width`/`height` attributes. turbodocx takes those
  * attributes literally, so a resized image renders at full pixel size and
- * overflows the page. Keep only the display width (as-is: `%` scales to the
- * page, `px` is capped by `max-width:100%`), drop the rest.
+ * overflows the page.
+ *
+ * Drop the natural-size attributes and `aspect-ratio`; keep the display width
+ * (figure resize wins), keep `max-height`/`max-width` caps (cover logos rely on
+ * `max-height`), and always cap width at the page with `max-width:100%`.
  */
 function normalizeDocxImage(img: HTMLElement, figureWidth?: string | null): void {
-  const width = figureWidth ?? cssWidthOf(img.getAttribute("style"));
   img.removeAttribute("width");
   img.removeAttribute("height");
-  const parts = width ? [`width:${width}`, "max-width:100%"] : ["max-width:100%"];
-  img.setAttribute("style", parts.join(";"));
+
+  const style = parseStyle(img.getAttribute("style"));
+  delete style["aspect-ratio"];
+  // A raw pixel height is CKEditor's natural size — let turbodocx derive it from
+  // the width instead. Keep `auto` / `%` / `max-height`.
+  if (style.height && /^\d/.test(style.height) && style.height.endsWith("px")) {
+    delete style.height;
+  }
+  const width = figureWidth ?? (cssWidthOf(img.getAttribute("style")) || undefined);
+  if (width) style.width = width;
+  if (!style["max-width"]) style["max-width"] = "100%";
+
+  img.setAttribute(
+    "style",
+    Object.entries(style)
+      .map(([k, v]) => `${k}:${v}`)
+      .join(";"),
+  );
 }
 
 /** Rewrite one section's CKEditor HTML into inline-styled, DOCX-friendly markup. */

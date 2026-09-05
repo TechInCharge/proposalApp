@@ -223,7 +223,7 @@ export async function assembleProposalHtml(
       background: linear-gradient(160deg, #ffffff 55%, color-mix(in srgb, var(--primary) 7%, white) 100%); }
     .cover .accent-bar { width: 56px; height: 6px; border-radius: 3px; background: var(--primary); margin-bottom: 28px; }
     .cover .logos { display: flex; gap: 32px; align-items: center; margin-bottom: 40px; }
-    .cover img { max-height: 56px; }
+    .cover .logos img { max-height: 56px; }
     .cover .eyebrow { color: var(--primary); font-weight: 600; letter-spacing: 1.5px;
       text-transform: uppercase; font-size: 12px; margin-bottom: 10px; }
     .cover h1 { font-size: 34px; font-weight: 700; color: var(--secondary); margin: 0 0 8px;
@@ -237,7 +237,9 @@ export async function assembleProposalHtml(
     .cover-body h3, .cover-body h4 { color: var(--secondary); font-weight: 700; margin: 8px 0 4px; }
     .cover-body p { margin: 6px 0; }
     .cover-body a { color: var(--primary); }
-    .cover-body img { max-width: 100%; height: auto; }
+    .cover-body img { max-width: 100%; max-height: 70vh; height: auto; }
+    .cover-body figure.image_resized { max-width: 100%; }
+    .cover-body figure.image_resized img { width: 100%; }
     .cover-body figure { margin: 10px 0; }
     .cover-body figure.image { text-align: center; }
     .cover-body figure.image.image-style-align-left { float: left; margin: 4px 16px 8px 0; }

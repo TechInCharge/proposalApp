@@ -8,6 +8,15 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- **Cover-page images were sized wrong.** In the PDF the auto-cover's 56px logo
+  cap (`.cover img`) bled into custom cover templates and shrank every image to
+  56px tall; it's now scoped to the auto-cover logo row, and custom-cover
+  images are bounded by `max-width:100%` / `max-height:70vh` with resized
+  figures honoured. In the DOCX, `normalizeDocxImage` was discarding the
+  `max-height` cap on the `{{customer.logo}}` / `{{brand.logo}}` tokens; it now
+  preserves `max-height`/`max-width` while still stripping CKEditor's
+  natural-size `width`/`height` attributes, so cover images (logos and
+  resized inserts) size like section images.
 - **Customer logo was silently wiped when the customer was edited.** The
   customer form doesn't include the logo field (it's uploaded separately), but
   `saveCustomer` still wrote `logoUrl: … || null` on every save, so editing a

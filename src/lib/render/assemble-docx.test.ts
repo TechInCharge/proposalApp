@@ -105,6 +105,38 @@ describe("assembleProposalDocxHtml", () => {
     expect(html.match(/Bill of Quantities/g)).toBeNull(); // not also appended
   });
 
+  it("sizes cover images like section images (drops natural-size attrs, keeps resize %)", async () => {
+    const { html } = await assembleProposalDocxHtml(
+      baseInput({
+        brand: {
+          ...baseInput().brand,
+          coverTemplate:
+            '<figure class="image image_resized" style="width:35%;">' +
+            '<img src="/api/files/editor-images/x.png" width="1800" height="1100"></figure>',
+        },
+      }),
+    );
+    const cover = html.slice(0, html.indexOf("page-break-after:always"));
+    expect(cover).not.toMatch(/<img[^>]*\bwidth="\d/);
+    expect(cover).not.toMatch(/<img[^>]*\bheight="\d/);
+    expect(cover).toContain("width:35%;max-width:100%");
+  });
+
+  it("keeps the max-height cap on a cover logo token", async () => {
+    const { html } = await assembleProposalDocxHtml(
+      baseInput({
+        customer: {
+          ...baseInput().customer,
+          logoUrl: "https://cdn.test/logo.png",
+        },
+        brand: { ...baseInput().brand, coverTemplate: "<p>{{customer.logo}}</p>" },
+      }),
+    );
+    expect(html).toMatch(
+      /<img[^>]+src="https:\/\/cdn\.test\/logo\.png"[^>]*style="[^"]*max-height:72px/,
+    );
+  });
+
   it("renders a custom cover template with inline styling and a page break", async () => {
     const { html } = await assembleProposalDocxHtml(
       baseInput({

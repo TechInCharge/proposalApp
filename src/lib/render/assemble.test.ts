@@ -100,6 +100,21 @@ describe("assembleProposalHtml", () => {
     expect(html).not.toContain('class="eyebrow"'); // auto cover markup gone
   });
 
+  it("does not shrink custom-cover content images with the auto-cover logo cap", async () => {
+    const { html } = await assembleProposalHtml(
+      baseInput({
+        brand: {
+          ...baseInput().brand,
+          coverTemplate: '<p><img src="/api/files/editor-images/x.png"></p>',
+        },
+      }),
+    );
+    // the 56px cap must be scoped to the auto cover's logo row, not all cover imgs
+    expect(html).not.toMatch(/\.cover img\s*\{/);
+    expect(html).toMatch(/\.cover \.logos img\s*\{[^}]*max-height:\s*56px/);
+    expect(html).toMatch(/\.cover-body img\s*\{[^}]*max-width:\s*100%/);
+  });
+
   it("lets a per-proposal cover override the brand cover", async () => {
     const { html } = await assembleProposalHtml(
       baseInput({
