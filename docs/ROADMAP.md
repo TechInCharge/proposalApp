@@ -37,14 +37,13 @@
       adds new templates, reports edited/orphaned counts
 - [x] Unit tests (Vitest) for `resolvePlaceholders`, `assembleProposalHtml`,
       `parseBoqBuffer`
-- [x] Pricing toggle + currency (done in Phase 1); **default flipped to no
-      pricing** — a technical proposal ships without prices, pricing is a
-      separate commercial quote
 - [x] Proposal contact fields — manual name/title/email/phone per proposal
       (no customer-contact picker, by design), "Attn:" on the cover,
       `{{contact.*}}` placeholders
+- [x] **BoQ has no pricing at all** — went further than a toggle: removed
+      `unit`, `unitPrice`, `showPricing`, `currency` entirely. BoQ rows are
+      Part Number / Description / Quantity (integer) — that's the whole model.
 - [ ] Section template diff view (show what changed before refreshing)
-- [ ] Taxes / discounts on the BoQ
 - [ ] Playwright happy-path test
 
 ## Known gaps / tech debt

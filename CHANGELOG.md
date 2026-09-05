@@ -6,6 +6,17 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- **BoQ simplified to Part Number, Description, Quantity only.** Removed
+  `unit`, `unitPrice`, and `Proposal.showPricing`/`currency` entirely — this
+  tool produces technical proposals without commercial terms, so there's no
+  pricing concept to toggle. `quantity` is now a plain integer. BoQ import,
+  the BoQ table UI, and the rendered table (PDF/DOCX/HTML) all dropped the
+  removed columns.
+
+## [0.4.0] - 2026-09-05
+
 ### Added
 
 - **Proposal contact fields** — name/title/email/phone entered manually per
