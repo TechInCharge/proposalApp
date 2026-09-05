@@ -58,6 +58,40 @@ describe("assembleProposalDocxHtml", () => {
     expect(html).toContain("Fig 1");
   });
 
+  it("keeps a resized image's display width and drops its natural-size attributes", async () => {
+    const body =
+      '<figure class="image image_resized" style="width:41.5%;">' +
+      '<img src="/api/files/editor-images/a.png" width="1600" height="1000"></figure>' +
+      '<p>x <img class="image-inline" style="width:120px;aspect-ratio:16/10;" ' +
+      'src="/api/files/editor-images/b.png" width="800" height="500"> y</p>';
+    const { html } = await assembleProposalDocxHtml(
+      baseInput({ sections: [{ id: "s1", title: "S", body }] }),
+    );
+    // no natural-size width/height attributes survive
+    expect(html).not.toMatch(/<img[^>]*\bwidth="\d/);
+    expect(html).not.toMatch(/<img[^>]*\bheight="\d/);
+    expect(html).not.toContain("aspect-ratio");
+    // display widths carried onto the <img>, capped
+    expect(html).toContain("width:41.5%;max-width:100%");
+    expect(html).toContain("width:120px;max-width:100%");
+  });
+
+  it("clamps a non-resized image to the page width", async () => {
+    const { html } = await assembleProposalDocxHtml(
+      baseInput({
+        sections: [
+          {
+            id: "s1",
+            title: "S",
+            body: '<figure class="image"><img src="/api/files/editor-images/c.png" width="3000"></figure>',
+          },
+        ],
+      }),
+    );
+    expect(html).toMatch(/<img[^>]*style="max-width:100%"/);
+    expect(html).not.toMatch(/<img[^>]*\bwidth="3000"/);
+  });
+
   it("injects a brand-coloured BoQ table for {{boq.table}}", async () => {
     const { html } = await assembleProposalDocxHtml(
       baseInput({

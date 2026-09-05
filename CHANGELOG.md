@@ -8,6 +8,13 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- **Resized images now render at the right size in the DOCX.** CKEditor keeps
+  the resize as a `width` style on the figure while writing the image's natural
+  pixel size to `width`/`height` attributes; the DOCX writer took those
+  literally, so a resized (or just large) image overflowed the page. The DOCX
+  assembler now moves the display width onto the `<img>`, drops the
+  natural-size attributes, and adds `max-width:100%` so no image exceeds the
+  page width.
 - **Generation no longer fails with "Invalid base64 string" after pasting
   images into a section.** Pasted images arrive as `data:` URIs; the DOCX
   writer throws unless the URI is a clean single-line `data:<simple-mime>;base64,…`

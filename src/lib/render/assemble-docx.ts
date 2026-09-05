@@ -48,6 +48,28 @@ function appendStyle(el: HTMLElement, css: string): void {
   el.setAttribute("style", cur ? `${cur};${css}` : css);
 }
 
+function cssWidthOf(style: string | null | undefined): string | null {
+  const m = /(?:^|;)\s*width\s*:\s*([^;]+)/i.exec(style ?? "");
+  const v = m?.[1].trim();
+  return v && v !== "auto" ? v : null;
+}
+
+/**
+ * CKEditor stores an image resize as a `width` style on the <figure> (block
+ * image) or the <img> (inline), while `ImageSizeAttributes` writes the image's
+ * *natural* pixel size to `width`/`height` attributes. turbodocx takes those
+ * attributes literally, so a resized image renders at full pixel size and
+ * overflows the page. Keep only the display width (as-is: `%` scales to the
+ * page, `px` is capped by `max-width:100%`), drop the rest.
+ */
+function normalizeDocxImage(img: HTMLElement, figureWidth?: string | null): void {
+  const width = figureWidth ?? cssWidthOf(img.getAttribute("style"));
+  img.removeAttribute("width");
+  img.removeAttribute("height");
+  const parts = width ? [`width:${width}`, "max-width:100%"] : ["max-width:100%"];
+  img.setAttribute("style", parts.join(";"));
+}
+
 /** Rewrite one section's CKEditor HTML into inline-styled, DOCX-friendly markup. */
 function docxifySectionHtml(
   html: string,
@@ -68,6 +90,7 @@ function docxifySectionHtml(
     const img = fig.querySelector("img");
     const cap = fig.querySelector("figcaption");
     if (img) {
+      normalizeDocxImage(img, cssWidthOf(fig.getAttribute("style")));
       const capHtml = cap
         ? `<p style="text-align:${align};font-size:9pt;color:#64748b;margin:0 0 6pt">${cap.innerHTML}</p>`
         : "";
@@ -78,6 +101,11 @@ function docxifySectionHtml(
       // table figure — unwrap, keep inner markup (table + optional caption)
       fig.replaceWith(fig.innerHTML);
     }
+  }
+
+  // Inline images (and anything the figure pass missed) — clamp the same way.
+  for (const img of root.querySelectorAll("img")) {
+    normalizeDocxImage(img);
   }
 
   for (const cap of root.querySelectorAll("figcaption")) {
