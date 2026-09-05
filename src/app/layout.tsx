@@ -10,7 +10,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "ProposalBuilder",
-  description: "Assemble technical proposals from per-product section templates.",
+  description: "Assemble technical proposals from per-component section templates.",
 };
 
 export default function RootLayout({

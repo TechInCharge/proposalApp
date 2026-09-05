@@ -13,14 +13,14 @@ export default async function ProductsPage() {
   return (
     <>
       <PageHeader
-        title="Products"
-        description="Each product owns an ordered set of section templates."
-        actions={<LinkButton href="/products/new">New product</LinkButton>}
+        title="Components"
+        description="Each component owns an ordered set of section templates."
+        actions={<LinkButton href="/products/new">New component</LinkButton>}
       />
       {products.length === 0 ? (
-        <EmptyState title="No products yet">
+        <EmptyState title="No components yet">
           <LinkButton href="/products/new" variant="secondary">
-            Create the first product
+            Create the first component
           </LinkButton>
         </EmptyState>
       ) : (

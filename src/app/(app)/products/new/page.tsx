@@ -7,7 +7,7 @@ export default async function NewProductPage() {
   return (
     <>
       <PageHeader
-        title="New product"
+        title="New component"
         actions={
           <LinkButton href="/products" variant="secondary">
             Back

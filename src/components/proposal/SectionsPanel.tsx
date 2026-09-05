@@ -58,8 +58,8 @@ export function SectionsPanel({
       <div className="grid gap-3">
         {header}
         <p className="text-sm text-slate-500">
-          Select products on the <strong>Products</strong> tab to pull in their
-          section templates, then Refresh if templates changed afterwards.
+          Select components on the <strong>Components</strong> tab to pull in
+          their section templates, then Refresh if templates changed afterwards.
         </p>
         {refreshNote && <p className="text-sm text-slate-600">{refreshNote}</p>}
       </div>

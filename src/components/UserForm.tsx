@@ -55,7 +55,7 @@ export function UserForm({
           onChange={(e) => setEmail(e.target.value)}
         />
       </Field>
-      <Field label="Role" hint="Admin manages products, templates and users">
+      <Field label="Role" hint="Admin manages components, templates and users">
         <select
           className="w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm"
           value={role}

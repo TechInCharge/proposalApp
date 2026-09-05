@@ -65,7 +65,7 @@ export function ProductForm({
       {error && <p className="text-sm text-red-600">{error}</p>}
       <div>
         <Button onClick={submit} disabled={pending || !name.trim()}>
-          {pending ? "Saving…" : product ? "Save changes" : "Create product"}
+          {pending ? "Saving…" : product ? "Save changes" : "Create component"}
         </Button>
       </div>
     </div>

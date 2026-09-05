@@ -17,12 +17,12 @@ export default async function DashboardPage() {
     <>
       <PageHeader
         title="Dashboard"
-        description="Assemble technical proposals from per-product section templates."
+        description="Assemble technical proposals from per-component section templates."
       />
       <section className="grid grid-cols-3 gap-4">
         <Card label="Proposals" value={proposals} href="/proposals" />
         <Card label="Customers" value={customers} href="/customers" />
-        {isAdmin && <Card label="Products" value={products} href="/products" />}
+        {isAdmin && <Card label="Components" value={products} href="/products" />}
       </section>
     </>
   );

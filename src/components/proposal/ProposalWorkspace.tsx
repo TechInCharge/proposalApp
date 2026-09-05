@@ -22,7 +22,7 @@ import type {
   WorkspaceSection,
 } from "./types";
 
-const TABS = ["Details", "Products", "Sections", "BoQ", "Generate"] as const;
+const TABS = ["Details", "Components", "Sections", "BoQ", "Generate"] as const;
 type Tab = (typeof TABS)[number];
 
 export function ProposalWorkspace(props: {
@@ -62,7 +62,7 @@ export function ProposalWorkspace(props: {
           brandProfiles={props.brandProfiles}
         />
       )}
-      {tab === "Products" && (
+      {tab === "Components" && (
         <ProductsPanel
           proposalId={props.proposal.id}
           products={props.products}
@@ -276,7 +276,7 @@ function ProductsPanel({
   if (products.length === 0) {
     return (
       <p className="text-sm text-slate-500">
-        No active products. An admin needs to create products with section
+        No active components. An admin needs to create components with section
         templates first.
       </p>
     );
@@ -285,7 +285,7 @@ function ProductsPanel({
   return (
     <div className="grid gap-2">
       <p className="text-sm text-slate-500">
-        Selecting a product copies its section templates into this proposal.
+        Selecting a component copies its section templates into this proposal.
         Removing one deletes its sections here (including edits).
       </p>
       {products.map((p) => {
