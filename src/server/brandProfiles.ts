@@ -17,14 +17,16 @@ export async function saveBrandProfile(
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
+  const { logoUrl, ...rest } = parsed.data;
   const data = {
-    ...parsed.data,
+    ...rest,
     headerText: parsed.data.headerText || null,
     footerText: parsed.data.footerText || null,
-    logoUrl: parsed.data.logoUrl || null,
     coverTemplate: parsed.data.coverTemplate
       ? ((await offloadDataUriImages(parsed.data.coverTemplate)) as Prisma.InputJsonValue)
       : Prisma.DbNull,
+    // Only write logoUrl when explicitly provided (the form doesn't send it).
+    ...(logoUrl !== undefined ? { logoUrl: logoUrl || null } : {}),
   };
 
   const profile = await prisma.$transaction(async (tx) => {

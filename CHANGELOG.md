@@ -8,6 +8,13 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- **Customer logo was silently wiped when the customer was edited.** The
+  customer form doesn't include the logo field (it's uploaded separately), but
+  `saveCustomer` still wrote `logoUrl: … || null` on every save, so editing a
+  customer's name/website/contacts cleared the uploaded logo — and it then
+  vanished from generated proposals. `saveCustomer` (and `saveBrandProfile`)
+  now only write `logoUrl` when a value is actually supplied. Re-upload the
+  logo once after deploying.
 - **Resized images now render at the right size in the DOCX.** CKEditor keeps
   the resize as a `width` style on the figure while writing the image's natural
   pixel size to `width`/`height` attributes; the DOCX writer took those

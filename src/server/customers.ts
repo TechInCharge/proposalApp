@@ -16,12 +16,22 @@ export async function saveCustomer(
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
-  const data = {
+  // `logoUrl` is owned by uploadCustomerLogo — the main form never sends it, so
+  // only write it when a value is explicitly provided (otherwise an edit here
+  // would wipe an uploaded logo).
+  const data: {
+    name: string;
+    website: string | null;
+    contacts: typeof parsed.data.contacts;
+    logoUrl?: string | null;
+  } = {
     name: parsed.data.name,
     website: parsed.data.website || null,
-    logoUrl: parsed.data.logoUrl || null,
     contacts: parsed.data.contacts,
   };
+  if (parsed.data.logoUrl !== undefined) {
+    data.logoUrl = parsed.data.logoUrl || null;
+  }
   const c = id
     ? await prisma.customer.update({ where: { id }, data })
     : await prisma.customer.create({ data });
