@@ -166,7 +166,7 @@ model Proposal {
   customerId     String
   brandProfileId String?
   createdById    String
-  showPricing    Boolean        @default(true)
+  showPricing    Boolean        @default(false) // technical proposals default to no pricing; a commercial quote is a separate document
   currency       String         @default("USD")
 
   // Last generated artifacts

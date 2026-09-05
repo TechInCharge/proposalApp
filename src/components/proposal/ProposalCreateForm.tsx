@@ -31,7 +31,7 @@ export function ProposalCreateForm({
         brandProfileId,
         reference,
         proposalDate: parseDateInput(proposalDate),
-        showPricing: true,
+        showPricing: false, // technical proposals default to no pricing
         currency: "USD",
       });
       if (res && !res.ok) setError(res.error);

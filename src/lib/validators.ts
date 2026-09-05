@@ -56,7 +56,7 @@ export const proposalInput = z.object({
   brandProfileId: z.string().optional().or(z.literal("")),
   proposalDate: z.coerce.date().default(() => new Date()),
   reference: z.string().max(120).optional().or(z.literal("")),
-  showPricing: z.boolean().default(true),
+  showPricing: z.boolean().default(false),
   currency: z.string().length(3).default("USD"),
 });
 export type ProposalInput = z.infer<typeof proposalInput>;
