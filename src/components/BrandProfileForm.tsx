@@ -28,8 +28,8 @@ export function BrandProfileForm({ profile }: { profile?: Profile }) {
   const [f, setF] = useState({
     name: profile?.name ?? "",
     isDefault: profile?.isDefault ?? false,
-    primaryColor: profile?.primaryColor ?? "#1D4ED8",
-    secondaryColor: profile?.secondaryColor ?? "#0F172A",
+    primaryColor: profile?.primaryColor ?? "#5636CE",
+    secondaryColor: profile?.secondaryColor ?? "#1F2024",
     fontFamily: profile?.fontFamily ?? "Inter",
     coverLayout: (profile?.coverLayout ?? "standard") as
       | "standard"

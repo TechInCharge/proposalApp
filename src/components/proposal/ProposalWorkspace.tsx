@@ -44,7 +44,7 @@ export function ProposalWorkspace(props: {
             onClick={() => setTab(t)}
             className={`-mb-px border-b-2 px-3 py-2 text-sm ${
               tab === t
-                ? "border-blue-600 font-medium text-blue-700"
+                ? "border-brand font-medium text-brand-dark"
                 : "border-transparent text-slate-500 hover:text-slate-700"
             }`}
           >

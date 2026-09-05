@@ -17,6 +17,9 @@ export async function htmlToPdf(
   try {
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "load" });
+    // Embedded @font-face (base64 data URI) still decodes asynchronously —
+    // wait for it so the PDF doesn't get rasterized with a fallback font.
+    await page.evaluateHandle("document.fonts.ready");
 
     const header = opts.headerText
       ? `<div style="font-size:8px;width:100%;padding:0 12mm;color:#94a3b8">${escapeText(

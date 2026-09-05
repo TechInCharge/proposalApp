@@ -26,7 +26,7 @@ export default async function CustomersPage() {
         <div className="grid gap-3">
           {customers.map((c) => (
             <Link key={c.id} href={`/customers/${c.id}`}>
-              <Card className="flex items-center gap-3 hover:border-blue-500">
+              <Card className="flex items-center gap-3 hover:border-brand">
                 {c.logoUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img

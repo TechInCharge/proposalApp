@@ -118,8 +118,8 @@ model BrandProfile {
   name           String
   isDefault      Boolean  @default(false)
   logoUrl        String?
-  primaryColor   String   @default("#1D4ED8")
-  secondaryColor String   @default("#0F172A")
+  primaryColor   String   @default("#5636CE")
+  secondaryColor String   @default("#1F2024")
   fontFamily     String   @default("Inter")
   coverLayout    String   @default("standard") // standard | minimal | full-bleed
   headerText     String?

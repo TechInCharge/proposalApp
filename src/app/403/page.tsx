@@ -7,7 +7,7 @@ export default function ForbiddenPage() {
       <p className="text-sm text-gray-500">
         This area is for administrators only.
       </p>
-      <Link href="/" className="text-sm text-blue-600 underline">
+      <Link href="/" className="text-sm text-brand underline">
         Back to dashboard
       </Link>
     </main>

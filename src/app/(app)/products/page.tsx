@@ -27,7 +27,7 @@ export default async function ProductsPage() {
         <div className="grid gap-3">
           {products.map((p) => (
             <Link key={p.id} href={`/products/${p.id}`}>
-              <Card className="flex items-center justify-between hover:border-blue-500">
+              <Card className="flex items-center justify-between hover:border-brand">
                 <div>
                   <div className="font-medium">
                     {p.name}

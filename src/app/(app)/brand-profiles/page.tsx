@@ -24,7 +24,7 @@ export default async function BrandProfilesPage() {
         <div className="grid gap-3">
           {profiles.map((p) => (
             <Link key={p.id} href={`/brand-profiles/${p.id}`}>
-              <Card className="flex items-center gap-3 hover:border-blue-500">
+              <Card className="flex items-center gap-3 hover:border-brand">
                 <div
                   className="h-8 w-8 rounded"
                   style={{ background: p.primaryColor }}
@@ -37,7 +37,7 @@ export default async function BrandProfilesPage() {
                   <div className="font-medium">
                     {p.name}
                     {p.isDefault && (
-                      <span className="ml-2 rounded bg-blue-100 px-1.5 py-0.5 text-xs text-blue-700">
+                      <span className="ml-2 rounded bg-brand-light px-1.5 py-0.5 text-xs text-brand-dark">
                         default
                       </span>
                     )}

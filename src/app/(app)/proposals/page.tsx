@@ -32,7 +32,7 @@ export default async function ProposalsPage() {
         <div className="grid gap-3">
           {proposals.map((p) => (
             <Link key={p.id} href={`/proposals/${p.id}/edit`}>
-              <Card className="flex items-center justify-between hover:border-blue-500">
+              <Card className="flex items-center justify-between hover:border-brand">
                 <div>
                   <div className="font-medium">{p.title}</div>
                   <div className="text-sm text-slate-500">

@@ -23,7 +23,7 @@ export default async function NewProposalPage() {
       />
       {customers.length === 0 ? (
         <EmptyState title="Add a customer first">
-          <Link href="/customers/new" className="text-blue-600 underline">
+          <Link href="/customers/new" className="text-brand underline">
             Create a customer
           </Link>
         </EmptyState>

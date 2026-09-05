@@ -1,21 +1,37 @@
 @import "tailwindcss";
 
+/*
+ * Design reference: seclore.com — Inter typeface, an indigo/violet brand
+ * accent (their CTA-button gradient runs #6443D8 -> #4A28C3; --color-brand
+ * below is the midpoint), near-black ink for headings, warm gray body copy,
+ * soft light-gray cards, generous whitespace.
+ */
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
+  --background: #fafafa;
+  --foreground: #141414;
+
+  --color-brand: #5636ce;
+  --color-brand-dark: #4a28c3;
+  --color-brand-light: #f2eefb;
+  --color-ink: #1f2024;
+  --color-accent: #e8935f;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-brand: var(--color-brand);
+  --color-brand-dark: var(--color-brand-dark);
+  --color-brand-light: var(--color-brand-light);
+  --color-ink: var(--color-ink);
+  --color-accent: var(--color-accent);
+  --font-sans: var(--font-inter);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
 }
 
 /* Rendered proposal / TipTap content */

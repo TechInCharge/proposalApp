@@ -41,7 +41,7 @@ export function GeneratePanel({
             href={`/api/proposals/${proposalId}/preview`}
             target="_blank"
             rel="noreferrer"
-            className="text-sm text-blue-600 underline"
+            className="text-sm text-brand underline"
           >
             Open HTML preview
           </a>
@@ -69,12 +69,12 @@ export function GeneratePanel({
             </p>
             <div className="flex gap-3 text-sm">
               {pdfUrl && (
-                <a href={pdfUrl} className="text-blue-600 underline" download>
+                <a href={pdfUrl} className="text-brand underline" download>
                   Download PDF
                 </a>
               )}
               {docxUrl && (
-                <a href={docxUrl} className="text-blue-600 underline" download>
+                <a href={docxUrl} className="text-brand underline" download>
                   Download DOCX
                 </a>
               )}

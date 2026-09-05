@@ -1,6 +1,7 @@
 import { buildContext, resolvePlaceholders } from "@/lib/placeholders";
 import { docToHtml } from "@/lib/render/tiptap";
 import { toDataUri } from "@/lib/storage";
+import { interFontFaceCss } from "@/lib/render/fonts";
 
 export interface AssembleInput {
   proposal: {
@@ -38,10 +39,13 @@ export interface AssembleResult {
   missingTokens: string[];
 }
 
+// Design reference: seclore.com — indigo/violet brand accent, near-black
+// headings, Inter typeface. See src/app/globals.css for the same palette
+// applied to the platform UI.
 export const DEFAULT_BRAND: AssembleInput["brand"] = {
   logoUrl: null,
-  primaryColor: "#1D4ED8",
-  secondaryColor: "#0F172A",
+  primaryColor: "#5636CE",
+  secondaryColor: "#1F2024",
   fontFamily: "Inter",
   coverLayout: "standard",
   headerText: "Technical Proposal",
@@ -118,40 +122,52 @@ export async function assembleProposalHtml(
   const custLogo = await toDataUri(input.customer.logoUrl);
   const dateStr = input.proposal.proposalDate.toISOString().slice(0, 10);
 
+  const usesInter = input.brand.fontFamily.trim().toLowerCase() === "inter";
+  const fontFaceCss = usesInter ? interFontFaceCss() : "";
+
   const html = `<!doctype html><html><head><meta charset="utf-8"><style>
+    ${fontFaceCss}
     :root { --primary: ${esc(input.brand.primaryColor)}; --secondary: ${esc(
       input.brand.secondaryColor,
     )}; }
     * { box-sizing: border-box; }
     body { font-family: ${esc(
       input.brand.fontFamily,
-    )}, Arial, sans-serif; color: #0f172a; margin: 0; font-size: 12px; line-height: 1.6; }
+    )}, Arial, sans-serif; color: #141414; margin: 0; font-size: 12px; line-height: 1.6; }
     .cover { min-height: 96vh; display: flex; flex-direction: column; justify-content: center;
-      padding: 48px; border-top: 10px solid var(--primary); page-break-after: always; }
-    .cover .logos { display: flex; gap: 32px; align-items: center; margin-bottom: 48px; }
-    .cover img { max-height: 64px; }
-    .cover h1 { font-size: 30px; color: var(--secondary); margin: 0 0 8px; }
-    .cover .meta { color: #475569; margin-top: 24px; }
-    .content { padding: 32px 48px; }
-    .doc-section { page-break-inside: avoid; margin-bottom: 20px; }
-    .doc-section h2 { color: var(--primary); font-size: 16px; border-bottom: 2px solid var(--primary);
-      padding-bottom: 4px; }
-    h1,h2,h3 { color: var(--secondary); }
-    table.boq { border-collapse: collapse; width: 100%; font-size: 11px; }
-    table.boq th { background: var(--primary); color: #fff; text-align: left; padding: 6px 8px; }
-    table.boq td { border: 1px solid #cbd5e1; padding: 6px 8px; }
+      padding: 56px; page-break-after: always;
+      background: linear-gradient(160deg, #ffffff 55%, color-mix(in srgb, var(--primary) 7%, white) 100%); }
+    .cover .accent-bar { width: 56px; height: 6px; border-radius: 3px; background: var(--primary); margin-bottom: 28px; }
+    .cover .logos { display: flex; gap: 32px; align-items: center; margin-bottom: 40px; }
+    .cover img { max-height: 56px; }
+    .cover .eyebrow { color: var(--primary); font-weight: 600; letter-spacing: 1.5px;
+      text-transform: uppercase; font-size: 12px; margin-bottom: 10px; }
+    .cover h1 { font-size: 34px; font-weight: 700; color: var(--secondary); margin: 0 0 8px;
+      letter-spacing: -0.02em; }
+    .cover .meta { color: #52525b; margin-top: 28px; font-size: 12.5px; }
+    .cover .meta div { margin-bottom: 4px; }
+    .content { padding: 36px 48px; }
+    .doc-section { page-break-inside: avoid; margin-bottom: 18px; background: #fafafa;
+      border-radius: 12px; padding: 18px 22px; }
+    .doc-section h2 { color: var(--secondary); font-size: 15px; font-weight: 700; margin: 0 0 10px;
+      padding-bottom: 8px; border-bottom: 2px solid var(--primary); }
+    h1,h2,h3 { color: var(--secondary); font-weight: 700; }
+    table.boq { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 11px;
+      border-radius: 8px; overflow: hidden; border: 1px solid #e4e4e7; }
+    table.boq th { background: var(--primary); color: #fff; text-align: left; padding: 8px 10px;
+      font-weight: 600; }
+    table.boq td { border-top: 1px solid #e4e4e7; padding: 8px 10px; background: #fff; }
     p { margin: 6px 0; }
     ul, ol { margin: 6px 0 6px 20px; }
   </style></head><body>
   <div class="cover">
+    <div class="accent-bar"></div>
     <div class="logos">
       ${custLogo ? `<img src="${custLogo}" alt="customer logo">` : ""}
       ${brandLogo ? `<img src="${brandLogo}" alt="logo">` : ""}
     </div>
+    <div class="eyebrow">Technical Proposal</div>
     <h1>${esc(input.proposal.title)}</h1>
-    <div style="color:var(--primary);font-weight:700;letter-spacing:2px;text-transform:uppercase">
-      Technical Proposal
-    </div>
     <div class="meta">
       <div><strong>Prepared for:</strong> ${esc(input.customer.name)}</div>
       ${

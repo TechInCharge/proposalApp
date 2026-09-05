@@ -40,7 +40,7 @@ function Card({
   return (
     <Link
       href={href}
-      className="rounded-lg border border-slate-200 bg-white p-5 transition hover:border-blue-500"
+      className="rounded-lg border border-slate-200 bg-white p-5 transition hover:border-brand"
     >
       <div className="text-3xl font-semibold">{value}</div>
       <div className="text-sm text-slate-500">{label}</div>
