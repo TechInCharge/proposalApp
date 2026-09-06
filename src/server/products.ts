@@ -49,6 +49,41 @@ export async function setProductArchived(id: string, archived: boolean) {
   revalidatePath("/products");
 }
 
+/**
+ * Hard-delete a component and its section templates (cascade). Refused while
+ * any proposal still selects it — archive it instead, or remove it from those
+ * proposals first.
+ */
+export async function deleteProduct(
+  id: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  await requireRole("ADMIN");
+
+  const inUse = await prisma.proposalProduct.count({ where: { productId: id } });
+  if (inUse > 0) {
+    return {
+      ok: false,
+      error: `This component is used by ${inUse} proposal${
+        inUse === 1 ? "" : "s"
+      }. Remove it from ${inUse === 1 ? "that proposal" : "those proposals"} first, or archive it instead.`,
+    };
+  }
+
+  try {
+    await prisma.product.delete({ where: { id } });
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2003") {
+      return {
+        ok: false,
+        error: "This component is still referenced elsewhere and can't be deleted.",
+      };
+    }
+    throw e;
+  }
+  revalidatePath("/products");
+  return { ok: true };
+}
+
 export async function saveSectionTemplate(
   id: string | null,
   raw: unknown,

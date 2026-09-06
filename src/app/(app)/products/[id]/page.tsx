@@ -5,6 +5,7 @@ import { PageHeader, LinkButton, Card } from "@/components/ui";
 import { ProductForm } from "@/components/ProductForm";
 import { ProductSectionsManager } from "@/components/ProductSectionsManager";
 import { ArchiveToggle } from "@/components/ArchiveToggle";
+import { DeleteProductButton } from "@/components/DeleteProductButton";
 
 export default async function ProductDetailPage({
   params,
@@ -27,6 +28,7 @@ export default async function ProductDetailPage({
         actions={
           <>
             <ArchiveToggle id={product.id} archived={product.archived} />
+            <DeleteProductButton id={product.id} />
             <LinkButton href="/products" variant="secondary">
               Back
             </LinkButton>

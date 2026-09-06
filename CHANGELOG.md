@@ -60,6 +60,11 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- **Delete a component.** The component detail page now has a Delete button
+  (ADMIN) alongside Archive. It removes the component and its section templates
+  (cascade); it's refused with a clear message while any proposal still selects
+  the component (archive it, or remove it from those proposals first).
+
 - **Customisable cover page.** A brand profile can carry a rich cover template
   (same editor as section templates) — lay out the cover freely with text,
   fonts, colours, images, alignment and tables, using `{{placeholders}}` like
