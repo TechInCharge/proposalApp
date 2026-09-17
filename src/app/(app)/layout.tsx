@@ -12,7 +12,7 @@ export default async function AppLayout({
   const isAdmin = session.user.role === "ADMIN";
 
   return (
-    <div className="min-h-full">
+    <div className="flex-1">
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
           <nav className="flex items-center gap-1 text-sm">

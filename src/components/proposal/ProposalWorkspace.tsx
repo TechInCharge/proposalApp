@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card, Field, Input } from "@/components/ui";
 import {
@@ -9,7 +9,8 @@ import {
   setProposalStatus,
 } from "@/server/proposals";
 import { parseDateInput } from "@/lib/date";
-import { CoverEditor } from "@/components/CoverEditor";
+import { CoverEditor, DEFAULT_COVER_TEMPLATE_URL } from "@/components/CoverEditor";
+import type { SectionEditorHandle } from "@/components/SectionEditorImpl";
 import { SectionsPanel } from "./SectionsPanel";
 import { BoqPanel } from "./BoqPanel";
 import { GeneratePanel } from "./GeneratePanel";
@@ -121,12 +122,37 @@ function DetailsPanel({
     setF((p) => ({ ...p, ...patch }));
     setSaved(false);
   };
+  const coverHandleRef = useRef<SectionEditorHandle | null>(null);
+  // Same rationale as BrandProfileForm: default to false so typing into a
+  // freshly-opened blank override editor without clicking a button first
+  // still gets saved, never silently discarded.
+  const [wantsNoOverride, setWantsNoOverride] = useState(false);
 
   function save() {
     setError(null);
     start(async () => {
+      let coverTemplate = "";
+      if (!wantsNoOverride) {
+        const handle = coverHandleRef.current;
+        if (!handle) {
+          setError("Cover editor is not ready yet");
+          return;
+        }
+        try {
+          const docx = await handle.getDocx();
+          const uploadRes = await fetch("/api/editor/section-body", { method: "POST", body: docx });
+          const uploadJson = await uploadRes.json();
+          if (!uploadRes.ok) throw new Error(uploadJson.error ?? "Upload failed");
+          coverTemplate = uploadJson.url;
+        } catch (e) {
+          setError(e instanceof Error ? e.message : "Failed to save cover");
+          return;
+        }
+      }
+
       const res = await updateProposalDetails(proposal.id, {
         ...f,
+        coverTemplate,
         proposalDate: parseDateInput(f.proposalDate),
       });
       if (!res.ok) setError(res.error);
@@ -233,8 +259,16 @@ function DetailsPanel({
           brand profile&rsquo;s cover.
         </p>
         <CoverEditor
-          value={f.coverTemplate}
-          onChange={(html) => set({ coverTemplate: html })}
+          value={wantsNoOverride ? "" : f.coverTemplate}
+          onReady={(h) => (coverHandleRef.current = h)}
+          onLoadDefault={() => {
+            setWantsNoOverride(false);
+            set({ coverTemplate: DEFAULT_COVER_TEMPLATE_URL });
+          }}
+          onClear={() => {
+            setWantsNoOverride(true);
+            set({ coverTemplate: "" });
+          }}
           fallbackNote="Empty — uses the brand profile cover"
         />
       </div>

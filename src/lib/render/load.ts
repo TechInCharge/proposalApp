@@ -5,17 +5,18 @@ import {
   type AssembleInput,
   type AssembleResult,
 } from "@/lib/render/assemble";
-import { assembleProposalDocxHtml } from "@/lib/render/assemble-docx";
 
-export async function loadAndAssemble(
+type LoadedProposal = NonNullable<Awaited<ReturnType<typeof getProposal>>>;
+
+/**
+ * Fetch a proposal and shape it into `AssembleInput`, without running either
+ * HTML builder — the lean loader for generate.ts's compose-docx.ts pipeline
+ * (Phase 4). `loadAndAssemble` below builds on this for the HTML-preview
+ * route, which still needs full HTML output.
+ */
+export async function loadProposalInput(
   proposalId: string,
-): Promise<
-  | (AssembleResult & {
-      docxHtml: string;
-      proposal: NonNullable<Awaited<ReturnType<typeof getProposal>>>;
-    })
-  | null
-> {
+): Promise<{ input: AssembleInput; proposal: LoadedProposal } | null> {
   const proposal = await getProposal(proposalId);
   if (!proposal) return null;
 
@@ -58,11 +59,17 @@ export async function loadAndAssemble(
     })),
   };
 
-  const [result, docx] = await Promise.all([
-    assembleProposalHtml(input),
-    assembleProposalDocxHtml(input),
-  ]);
-  return { ...result, docxHtml: docx.html, proposal };
+  return { input, proposal };
+}
+
+export async function loadAndAssemble(
+  proposalId: string,
+): Promise<(AssembleResult & { proposal: LoadedProposal }) | null> {
+  const loaded = await loadProposalInput(proposalId);
+  if (!loaded) return null;
+
+  const result = await assembleProposalHtml(loaded.input);
+  return { ...result, proposal: loaded.proposal };
 }
 
 function getProposal(id: string) {

@@ -10,13 +10,6 @@ import {
   sectionTemplateInput,
   type ProductInput,
 } from "@/lib/validators";
-import { extractTokens } from "@/lib/placeholders";
-import { offloadDataUriImages } from "@/lib/render/images";
-
-/** Distinct {{tokens}} used anywhere in an HTML section body. */
-function tokensFromBody(body: string): string[] {
-  return [...new Set(extractTokens(body))];
-}
 
 export async function saveProduct(
   id: string | null,
@@ -94,9 +87,13 @@ export async function saveSectionTemplate(
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
   const { productId, title, order } = parsed.data;
-  const cleanBody = await offloadDataUriImages(parsed.data.body);
-  const body = cleanBody as Prisma.InputJsonValue;
-  const placeholders = tokensFromBody(cleanBody);
+  const body = parsed.data.body as Prisma.InputJsonValue;
+  // `placeholders` isn't read anywhere in the UI today (it was a write-only
+  // reference column even before this migration). Bodies are now docx-file
+  // URLs, not HTML, so populating it accurately would mean reading the
+  // document's text via @superdoc/sdk on every save — not worth doing until
+  // something actually displays it.
+  const placeholders: string[] = [];
 
   if (id) {
     const existing = await prisma.sectionTemplate.findUnique({ where: { id } });

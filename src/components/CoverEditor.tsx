@@ -1,23 +1,36 @@
 "use client";
 
 import { SectionEditor } from "@/components/SectionEditor";
+import type { SectionEditorHandle } from "@/components/SectionEditorImpl";
 import {
   COVER_PLACEHOLDERS,
-  DEFAULT_COVER_TEMPLATE,
+  DEFAULT_COVER_TEMPLATE_URL,
 } from "@/lib/render/cover-constants";
 
 /**
- * Rich editor for a custom cover page. Empty value = fall back to the
- * auto-generated cover. Used on the Brand Profile form and (as a per-proposal
- * override) on the proposal Details tab.
+ * Editor for a custom cover page, built on the same SuperDoc editor as
+ * section templates. Empty value = fall back to the auto-generated cover.
+ * Used on the Brand Profile form and (as a per-proposal override) on the
+ * proposal Details tab.
+ *
+ * `value` is a `/api/files/...docx` URL (or "" for "use the auto cover").
+ * There's no `onChange` — like SectionEditor, the editor exports on demand
+ * via the handle returned through `onReady`; the caller's own Save button
+ * pulls docx bytes from it at submit time.
  */
 export function CoverEditor({
   value,
-  onChange,
+  onReady,
+  onLoadDefault,
+  onClear,
   fallbackNote,
 }: {
   value: string;
-  onChange: (html: string) => void;
+  onReady: (handle: SectionEditorHandle) => void;
+  /** Switches the editor to load the built-in default layout (remounts it). */
+  onLoadDefault: () => void;
+  /** Clears back to "use the auto cover" (remounts to a blank editor). */
+  onClear: () => void;
   fallbackNote: string;
 }) {
   const hasCustom = value.trim().length > 0;
@@ -29,7 +42,7 @@ export function CoverEditor({
         <button
           type="button"
           className="rounded border border-slate-300 px-2 py-0.5 hover:bg-slate-50"
-          onClick={() => onChange(DEFAULT_COVER_TEMPLATE)}
+          onClick={onLoadDefault}
         >
           Load default layout
         </button>
@@ -37,7 +50,7 @@ export function CoverEditor({
           <button
             type="button"
             className="rounded border border-slate-300 px-2 py-0.5 hover:bg-slate-50"
-            onClick={() => onChange("")}
+            onClick={onClear}
           >
             Clear (use auto cover)
           </button>
@@ -46,7 +59,7 @@ export function CoverEditor({
 
       <SectionEditor
         value={value}
-        onChange={onChange}
+        onReady={onReady}
         placeholders={[...COVER_PLACEHOLDERS]}
         hint={
           <span className="text-xs text-slate-400">
@@ -58,3 +71,5 @@ export function CoverEditor({
     </div>
   );
 }
+
+export { DEFAULT_COVER_TEMPLATE_URL };

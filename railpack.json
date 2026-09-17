@@ -1,0 +1,11 @@
+{
+  "$schema": "https://schema.railpack.com",
+  // LibreOffice headless (used by src/lib/render/soffice.ts for .docx<->PDF/HTML
+  // conversion) needs to be present at RUNTIME, not just during the build — hence
+  // deploy.aptPackages, not buildAptPackages. libreoffice-writer pulls in
+  // libreoffice-core automatically. Replaces the old Puppeteer/Chromium deps this
+  // app no longer needs.
+  "deploy": {
+    "aptPackages": ["ca-certificates", "fonts-liberation", "libreoffice-writer"]
+  }
+}

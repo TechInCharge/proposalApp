@@ -64,18 +64,13 @@
   `prisma.config.ts` before a Prisma 7 upgrade (Prisma 7 also drops `url` in the
   datasource block — needs a driver adapter).
 - Section reorder is up/down buttons; wire real drag-and-drop.
-- PDF generation runs in-process via Puppeteer. On serverless hosts switch to
-  `puppeteer-core` + `@sparticuz/chromium` or a dedicated worker.
 - `refreshProposalSections` never deletes orphaned snapshots — only reports them.
-- `docToHtml` (`@tiptap/html/server`) + the `@tiptap/*` deps are kept **only**
-  for the legacy ProseMirror→HTML fallback and `scripts/migrate-section-bodies.ts`.
-  Once every environment (local + Railway) has run that script and no `body`
-  column holds a `{ type: "doc" }` object, delete `src/lib/render/tiptap.ts`,
-  `src/lib/editor-extensions.ts`, the legacy branch in `section-html.ts`, and
-  drop the `@tiptap/*` packages.
-- CKEditor 5 is used under its GPL licence (`licenseKey: "GPL"`). Swap to a
-  commercial key in `src/components/SectionEditorImpl.tsx` if the app is ever
-  distributed to third parties.
+- `docToHtml` (`@tiptap/html/server`) + the `@tiptap/*` deps stay
+  **indefinitely** now (not a temporary fallback pending a migration script —
+  see Phase 4 above, there is deliberately no such script) as long as any
+  `SectionTemplate`/`ProposalSection`/cover row can still hold pre-CKEditor
+  ProseMirror JSON or CKEditor-era HTML. Both the live HTML preview and
+  generation's legacy-content fallback depend on this.
 - The dev machine's file sync (iCloud/Dropbox/OneDrive) creates conflicted-copy
   duplicates (`name 2.ts`, `name 3.ts`, …) while editing. They're gitignored
   and excluded from `tsconfig.json`, but worth investigating at the OS level.
@@ -90,19 +85,55 @@
 - [ ] Wire the `coverLayout` enum (standard/minimal/full-bleed) into the auto
       cover, or retire it now that custom templates exist.
 
+## Done — Phase 4: SuperDoc migration (Unreleased)
+
+Full write-up and findings: `/Users/djenane/.claude/plans/abundant-rolling-dawn.md`.
+
+- [x] Section templates and cover pages both moved from CKEditor 5 (HTML) to
+      SuperDoc (`@superdoc/sdk`/`@superdoc/react`) — real `.docx` files,
+      edited in a Word-grade editor. `{{token}}` placeholders unchanged.
+      Deliberately **no bulk migration** of existing content (explicit
+      choice) — old rows keep rendering via an on-the-fly LibreOffice bridge.
+- [x] Generation (`generateProposal`) rebuilt on a single composed `.docx`
+      (`compose-docx.ts` + `brand-docx.ts`) converted to PDF via headless
+      LibreOffice, replacing Puppeteer + `@turbodocx/html-to-docx` entirely.
+      PDF and DOCX now come from the same source document.
+- [x] Licensed under the **GNU AGPLv3** (`LICENSE` + footer link to the
+      license and the exact source commit a deploy was built from).
+- [x] Dead-code removal: CKEditor, Puppeteer, `@turbodocx/html-to-docx`, and
+      everything only they used.
+- [ ] Validate the LibreOffice pipeline (`railpack.json`) against an actual
+      Railway build — only tested locally (macOS) so far. Note: the
+      project's Railway service uses the **Railpack** builder, not
+      Nixpacks — an earlier `nixpacks.toml` was silently never read;
+      corrected to `railpack.json` (`deploy.aptPackages`), the config
+      Railpack actually applies.
+- [ ] Header/footer text + page numbers (`BrandProfile.headerText`/
+      `footerText`/`showPageNumbers`) — not applied by the new generation
+      pipeline yet; the old one set these as PDF/DOCX rendering options that
+      have no equivalent yet in the new one. Needs the SuperDoc SDK's
+      header/footer API investigated (present in its types, unvalidated).
+- [ ] Tag the first real Railway deploy (`git tag vX.Y.Z`, pushed) — AGPL
+      §13 wants the exact version a user is interacting with fetchable.
+
 ## Going live
 
 Host chosen: **Railway** (persistent disk + normal Node process, so the app
-deploys as-is — no storage or Puppeteer rework needed, unlike a serverless
-host such as Vercel). See the "Deploy to Railway" section in the README for
-the exact dashboard steps.
+deploys as-is — no storage rework needed, unlike a serverless host such as
+Vercel). See the "Deploy to Railway" section in the README for the exact
+dashboard steps.
 
-- [x] Deployment prep: `trustHost`, `nixpacks.toml` for Puppeteer's Chromium
-      deps, `postinstall`/`start` scripts run `prisma generate` /
-      `migrate deploy`, `PUPPETEER_EXECUTABLE_PATH` escape hatch (v0.8.0)
-- [ ] Actually create the Railway project + Postgres addon + volume (manual —
-      needs the user's Railway/GitHub login, see README)
-- [ ] Real `AUTH_SECRET` (not the `.env.example` placeholder) set in Railway
+- [x] Deployment prep: `trustHost`, `postinstall`/`start` scripts run
+      `prisma generate` / `migrate deploy` (v0.8.0); `railpack.json` now
+      provisions LibreOffice instead of Puppeteer's Chromium deps (Phase 4,
+      see above — not yet validated on an actual Railway build)
+- [x] Railway project (`dynamic-energy`), Postgres, and a volume
+      (`proposalapp-volume`) already exist and are online — service is
+      `proposalApp` on the `main` branch, `AUTH_SECRET`/`AUTH_TRUST_HOST`/
+      `AUTH_URL`/`DATABASE_URL`/`STORAGE_DIR` all already set. **Was already
+      live** at `proposalapp-production.up.railway.app` running the
+      pre-migration (CKEditor/Puppeteer) build before Phase 4 — this
+      roadmap's earlier "nothing is deployed yet" framing was stale.
 - [ ] Change the seeded admin password (or replace it) after first deploy
 - [ ] Database backup plan (Railway's Postgres has point-in-time restore on
       paid plans — confirm it's enabled)

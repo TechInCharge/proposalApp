@@ -14,14 +14,11 @@ export const COVER_PLACEHOLDERS = [
   "contact.phone",
 ] as const;
 
-/** A starting point offered in the editor ("Load default layout"). */
-export const DEFAULT_COVER_TEMPLATE = [
-  "<p>{{brand.logo}}</p>",
-  '<p><span style="color:#5636CE;"><strong>TECHNICAL PROPOSAL</strong></span></p>',
-  "<h1>{{proposal.title}}</h1>",
-  "<p>&nbsp;</p>",
-  "<p><strong>Prepared for:</strong> {{customer.name}}</p>",
-  "<p><strong>Attn:</strong> {{contact.name}}, {{contact.title}}</p>",
-  "<p><strong>Reference:</strong> {{proposal.reference}}</p>",
-  "<p><strong>Date:</strong> {{proposal.date}}</p>",
-].join("");
+/**
+ * A starting point offered in the editor ("Load default layout") — a real
+ * .docx, built once and saved at this fixed storage path (not a random
+ * UUID) so this constant can point at it directly. Built by
+ * scripts/build-default-cover.ts; regenerate + re-save at the same filename
+ * to change it.
+ */
+export const DEFAULT_COVER_TEMPLATE_URL = "/api/files/defaults/cover-template.docx";

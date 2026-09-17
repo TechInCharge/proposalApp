@@ -132,23 +132,25 @@ export async function assembleProposalHtml(
   const boqHtml = boqTableHtml(input.boqItems);
 
   let boqRendered = false;
-  let sectionHtml = input.sections
-    .map((s) => {
-      const { html: resolved, missing: m } = resolvePlaceholdersInHtml(
-        sectionBodyToHtml(s.body),
-        ctx,
-      );
-      m.forEach((t) => missing.add(t));
-      const body = resolved.replace(
-        /<p>\s*\{\{\s*boq\.table\s*\}\}\s*<\/p>/gi,
-        () => {
-          boqRendered = true;
-          return boqHtml;
-        },
-      );
-      return `<section class="doc-section"><h2>${esc(s.title)}</h2>${body}</section>`;
-    })
-    .join("\n");
+  let sectionHtml = (
+    await Promise.all(
+      input.sections.map(async (s) => {
+        const { html: resolved, missing: m } = resolvePlaceholdersInHtml(
+          await sectionBodyToHtml(s.body),
+          ctx,
+        );
+        m.forEach((t) => missing.add(t));
+        const body = resolved.replace(
+          /<p>\s*\{\{\s*boq\.table\s*\}\}\s*<\/p>/gi,
+          () => {
+            boqRendered = true;
+            return boqHtml;
+          },
+        );
+        return `<section class="doc-section"><h2>${esc(s.title)}</h2>${body}</section>`;
+      }),
+    )
+  ).join("\n");
   sectionHtml = await inlineFileImages(sectionHtml);
 
   // If no section embedded the BoQ but items exist, append it as a final section.
@@ -169,7 +171,7 @@ export async function assembleProposalHtml(
   );
   let coverInner: string;
   if (coverTpl) {
-    const { html: ch, missing: cm } = resolveCoverHtml(coverTpl, {
+    const { html: ch, missing: cm } = await resolveCoverHtml(coverTpl, {
       title: input.proposal.title,
       proposalDate: input.proposal.proposalDate,
       reference: input.proposal.reference,

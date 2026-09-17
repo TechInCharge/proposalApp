@@ -8,12 +8,10 @@ import { Image } from "@tiptap/extension-image";
 import { TableKit } from "@tiptap/extension-table";
 
 /**
- * One extension list shared by the client editor (SectionEditor) and the
- * server-side renderer (src/lib/render/tiptap.ts). Both must agree on the
- * schema or stored documents fail to serialize.
- *
- * `resizable: true` on the table adds a client-only ProseMirror plugin; the
- * server renderer only reads the schema, so it's a no-op there.
+ * TipTap/ProseMirror schema used only by src/lib/render/tiptap.ts to render
+ * legacy pre-CKEditor ProseMirror-JSON section bodies to HTML. The client
+ * editor (SectionEditor) moved to SuperDoc and no longer uses this schema —
+ * it's kept solely so old stored rows in that format still render correctly.
  */
 export const editorExtensions = [
   StarterKit.configure({

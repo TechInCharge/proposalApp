@@ -1,16 +1,23 @@
 import { buildContext, resolvePlaceholdersInHtml } from "@/lib/placeholders";
 import { sanitizeSectionHtml } from "@/lib/render/sanitize";
+import { docxToHtmlFragment } from "@/lib/render/docx-to-html";
+import { readBuffer } from "@/lib/storage";
 
 /**
- * Cover page: a brand profile (and optionally a single proposal) can supply a
- * CKEditor HTML template with {{placeholders}}. When none is set the built-in
+ * Cover page: a brand profile (and optionally a single proposal) can supply
+ * a custom template with {{placeholders}} — now a `/api/files/section-bodies/
+ * <uuid>.docx` URL authored in the SuperDoc editor (legacy rows may still
+ * hold a CKEditor HTML string; both are handled by resolveCoverHtml below,
+ * same bridge pattern as section-html.ts). When neither is set, the built-in
  * auto cover in the assemblers is used instead.
  */
 
 export {
   COVER_PLACEHOLDERS,
-  DEFAULT_COVER_TEMPLATE,
+  DEFAULT_COVER_TEMPLATE_URL,
 } from "@/lib/render/cover-constants";
+
+const DOCX_URL = /^\/api\/files\/(section-bodies\/.+\.docx|defaults\/.+\.docx)$/;
 
 export interface CoverData {
   title: string;
@@ -60,15 +67,28 @@ function replaceLogoToken(
 }
 
 /**
- * Resolve a custom cover template: sanitise, swap the logo image tokens for
- * `<img>` tags, then resolve the remaining {{tokens}}. Returns the inner HTML
- * (the assembler wraps it in the page frame).
+ * Resolve a custom cover template: bridge a docx-authored template to HTML
+ * if needed (see DOCX_URL above), sanitise, swap the logo image tokens for
+ * `<img>` tags, then resolve the remaining {{tokens}}. Returns the inner
+ * HTML (the assembler wraps it in the page frame).
  */
-export function resolveCoverHtml(
-  templateHtml: string,
+export async function resolveCoverHtml(
+  templateValue: string,
   d: CoverData,
-): { html: string; missing: string[] } {
-  let html = sanitizeSectionHtml(templateHtml);
+): Promise<{ html: string; missing: string[] }> {
+  const docxMatch = templateValue.match(DOCX_URL);
+  let sourceHtml = templateValue;
+  if (docxMatch) {
+    try {
+      const docx = await readBuffer(docxMatch[1]);
+      sourceHtml = await docxToHtmlFragment(docx);
+    } catch (err) {
+      console.warn("resolveCoverHtml: docx bridge failed", err);
+      sourceHtml = "<p><em>[cover content could not be rendered]</em></p>";
+    }
+  }
+
+  let html = sanitizeSectionHtml(sourceHtml);
   html = replaceLogoToken(html, "customer.logo", d.customerLogoDataUri);
   html = replaceLogoToken(html, "brand.logo", d.brandLogoDataUri);
 

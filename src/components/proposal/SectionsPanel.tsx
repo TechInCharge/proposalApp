@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card, Input } from "@/components/ui";
 import { SectionEditor } from "@/components/SectionEditor";
+import type { SectionEditorHandle } from "@/components/SectionEditorImpl";
 import {
   updateProposalSection,
   reorderProposalSections,
@@ -22,8 +23,10 @@ export function SectionsPanel({
   const [pending, start] = useTransition();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftTitle, setDraftTitle] = useState("");
-  const [draftBody, setDraftBody] = useState<unknown>("");
+  const [draftBody, setDraftBody] = useState<unknown>(null);
   const [refreshNote, setRefreshNote] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const editorHandleRef = useRef<SectionEditorHandle | null>(null);
 
   function refresh() {
     setRefreshNote(null);
@@ -91,14 +94,34 @@ export function SectionsPanel({
     setEditingId(s.id);
     setDraftTitle(s.title);
     setDraftBody(s.body);
+    setError(null);
   }
 
   function save() {
     if (!editingId) return;
+    setError(null);
     start(async () => {
+      const handle = editorHandleRef.current;
+      if (!handle) {
+        setError("Editor is not ready yet");
+        return;
+      }
+
+      let bodyUrl: string;
+      try {
+        const docx = await handle.getDocx();
+        const uploadRes = await fetch("/api/editor/section-body", { method: "POST", body: docx });
+        const uploadJson = await uploadRes.json();
+        if (!uploadRes.ok) throw new Error(uploadJson.error ?? "Upload failed");
+        bodyUrl = uploadJson.url;
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Failed to save document");
+        return;
+      }
+
       await updateProposalSection(editingId, {
         title: draftTitle,
-        body: draftBody,
+        body: bodyUrl,
       });
       setEditingId(null);
       router.refresh();
@@ -150,7 +173,8 @@ export function SectionsPanel({
                 value={draftTitle}
                 onChange={(e) => setDraftTitle(e.target.value)}
               />
-              <SectionEditor value={draftBody} onChange={setDraftBody} />
+              <SectionEditor value={draftBody} onReady={(h) => (editorHandleRef.current = h)} />
+              {error && <p className="text-sm text-red-600">{error}</p>}
               <div className="flex gap-2">
                 <Button onClick={save} disabled={pending}>
                   {pending ? "Saving…" : "Save"}
