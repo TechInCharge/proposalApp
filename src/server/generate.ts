@@ -3,11 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/rbac";
-import { loadAndAssemble } from "@/lib/render/load";
-import { htmlToPdf } from "@/lib/render/pdf";
-import { htmlToDocxBuffer } from "@/lib/render/docx";
+import { loadProposalInput } from "@/lib/render/load";
+import { composeProposalDocument } from "@/lib/render/compose-proposal";
+import { docxToPdf } from "@/lib/render/docx-to-pdf";
 import { saveFile } from "@/lib/storage";
-import { DEFAULT_BRAND } from "@/lib/render/assemble";
 
 export interface GenerateResult {
   ok: boolean;
@@ -20,31 +19,19 @@ export interface GenerateResult {
 export async function generateProposal(id: string): Promise<GenerateResult> {
   await requireUser();
 
-  const assembled = await loadAndAssemble(id);
-  if (!assembled) return { ok: false, error: "Proposal not found" };
+  const loaded = await loadProposalInput(id);
+  if (!loaded) return { ok: false, error: "Proposal not found" };
 
-  const { html, docxHtml, missingTokens, proposal } = assembled;
+  const { input, proposal } = loaded;
   if (!proposal.sections.some((s) => s.included)) {
     return { ok: false, error: "Add at least one section before generating." };
   }
 
-  const brand = proposal.brandProfile ?? DEFAULT_BRAND;
   const stamp = Date.now();
 
   try {
-    const [pdf, docx] = await Promise.all([
-      htmlToPdf(html, {
-        headerText: brand.headerText,
-        footerText: brand.footerText,
-        showPageNumbers: brand.showPageNumbers,
-      }),
-      htmlToDocxBuffer(docxHtml, {
-        title: proposal.title,
-        footerText: brand.footerText,
-        showPageNumbers: brand.showPageNumbers,
-        font: brand.fontFamily,
-      }),
-    ]);
+    const { docx, missingTokens } = await composeProposalDocument(input);
+    const pdf = await docxToPdf(docx);
 
     const [{ url: pdfUrl }, { url: docxUrl }] = await Promise.all([
       saveFile(pdf, { prefix: `proposals/${id}`, ext: "pdf", filename: `proposal-${stamp}.pdf` }),
