@@ -102,8 +102,12 @@ Full write-up and findings: `/Users/djenane/.claude/plans/abundant-rolling-dawn.
       license and the exact source commit a deploy was built from).
 - [x] Dead-code removal: CKEditor, Puppeteer, `@turbodocx/html-to-docx`, and
       everything only they used.
-- [ ] Validate the LibreOffice pipeline (`nixpacks.toml`) against an actual
-      Railway build — only tested locally (macOS) so far.
+- [ ] Validate the LibreOffice pipeline (`railpack.json`) against an actual
+      Railway build — only tested locally (macOS) so far. Note: the
+      project's Railway service uses the **Railpack** builder, not
+      Nixpacks — an earlier `nixpacks.toml` was silently never read;
+      corrected to `railpack.json` (`deploy.aptPackages`), the config
+      Railpack actually applies.
 - [ ] Header/footer text + page numbers (`BrandProfile.headerText`/
       `footerText`/`showPageNumbers`) — not applied by the new generation
       pipeline yet; the old one set these as PDF/DOCX rendering options that
@@ -120,12 +124,16 @@ Vercel). See the "Deploy to Railway" section in the README for the exact
 dashboard steps.
 
 - [x] Deployment prep: `trustHost`, `postinstall`/`start` scripts run
-      `prisma generate` / `migrate deploy` (v0.8.0); `nixpacks.toml` now
+      `prisma generate` / `migrate deploy` (v0.8.0); `railpack.json` now
       provisions LibreOffice instead of Puppeteer's Chromium deps (Phase 4,
       see above — not yet validated on an actual Railway build)
-- [ ] Actually create the Railway project + Postgres addon + volume (manual —
-      needs the user's Railway/GitHub login, see README)
-- [ ] Real `AUTH_SECRET` (not the `.env.example` placeholder) set in Railway
+- [x] Railway project (`dynamic-energy`), Postgres, and a volume
+      (`proposalapp-volume`) already exist and are online — service is
+      `proposalApp` on the `main` branch, `AUTH_SECRET`/`AUTH_TRUST_HOST`/
+      `AUTH_URL`/`DATABASE_URL`/`STORAGE_DIR` all already set. **Was already
+      live** at `proposalapp-production.up.railway.app` running the
+      pre-migration (CKEditor/Puppeteer) build before Phase 4 — this
+      roadmap's earlier "nothing is deployed yet" framing was stale.
 - [ ] Change the seeded admin password (or replace it) after first deploy
 - [ ] Database backup plan (Railway's Postgres has point-in-time restore on
       paid plans — confirm it's enabled)

@@ -110,14 +110,19 @@ it needed no equivalent replacement.
 
 ## Deployment
 
-- Targeted host: **Railway** (`nixpacks.toml`, `npm start` runs
-  `prisma migrate deploy` first). See the README's Deploy section for the
-  step-by-step.
-- DB: managed Postgres.
-- `nixpacks.toml` installs LibreOffice headless (`libreoffice-writer`) —
-  needed by the generation pipeline above and by the preview route's docx
-  bridge. **Not yet validated against an actual Railway build** — only
-  tested locally on macOS so far.
+- Host: **Railway**, already live at `proposalapp-production.up.railway.app`
+  (project `dynamic-energy`, service `proposalApp`, deploys from `main`).
+  `npm start` runs `prisma migrate deploy` first. See the README's Deploy
+  section for the step-by-step.
+- DB: managed Postgres, already provisioned, with a volume for
+  `STORAGE_DIR`.
+- Builder: **Railpack** (Railway's own zero-config builder), *not* Nixpacks
+  — `railpack.json` is what this service's build actually reads
+  (`deploy.aptPackages`); an earlier `nixpacks.toml` in this repo was
+  silently never applied. `railpack.json` installs LibreOffice headless
+  (`libreoffice-writer`) — needed by the generation pipeline above and by
+  the preview route's docx bridge. **Not yet validated against an actual
+  Railway build** — only tested locally on macOS so far.
 - Licensed under the **GNU AGPLv3** (`LICENSE`) — the in-app footer links to
   the license and to the exact commit a given deploy was built from
   (`RAILWAY_GIT_COMMIT_SHA`, read server-side).

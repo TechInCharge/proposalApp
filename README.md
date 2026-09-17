@@ -51,12 +51,15 @@ only ever creates the one bootstrap admin.
 
 ## Deploy to Railway
 
-`nixpacks.toml` installs LibreOffice headless (needed for DOCX→PDF/HTML
-conversion — see `src/lib/render/soffice.ts`); `npm start` runs
-`prisma migrate deploy` before serving.
+`railpack.json` installs LibreOffice headless (needed for DOCX→PDF/HTML
+conversion — see `src/lib/render/soffice.ts`) into the deployed image;
+`npm start` runs `prisma migrate deploy` before serving. This project's
+Railway service uses the **Railpack** builder, not Nixpacks — an earlier
+`nixpacks.toml` in this repo was silently never read; `railpack.json`
+(`deploy.aptPackages`) is the config that actually applies.
 
 **Not yet validated on an actual Railway build** — this pipeline (and the
-`nixpacks.toml` LibreOffice provisioning) has only been tested locally on
+`railpack.json` LibreOffice provisioning) has only been tested locally on
 macOS so far. Confirm a real `.docx`→PDF conversion succeeds on a fresh
 Railway deploy before relying on this in production; if `soffice` isn't
 found automatically, set `LIBREOFFICE_EXECUTABLE_PATH` (see `.env.example`).
