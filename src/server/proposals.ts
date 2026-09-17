@@ -8,11 +8,10 @@ import { requireUser } from "@/lib/rbac";
 import {
   proposalInput,
   boqTableInput,
-  sectionHtmlBody,
+  sectionBodyValue,
   type ProposalInput,
 } from "@/lib/validators";
 import { captureBoqItems } from "@/server/boqCatalog";
-import { offloadDataUriImages } from "@/lib/render/images";
 import type { ProposalStatus } from "@prisma/client";
 
 async function proposalWriteData(parsed: ProposalInput) {
@@ -27,7 +26,7 @@ async function proposalWriteData(parsed: ProposalInput) {
     contactEmail: parsed.contactEmail || null,
     contactPhone: parsed.contactPhone || null,
     coverTemplate: parsed.coverTemplate
-      ? ((await offloadDataUriImages(parsed.coverTemplate)) as Prisma.InputJsonValue)
+      ? (parsed.coverTemplate as Prisma.InputJsonValue)
       : Prisma.DbNull,
   };
 }
@@ -132,9 +131,12 @@ export async function updateProposalSection(
   if (typeof data.title === "string") patch.title = data.title;
   if (typeof data.included === "boolean") patch.included = data.included;
   if (data.body !== undefined) {
-    const parsed = sectionHtmlBody.safeParse(data.body);
+    const parsed = sectionBodyValue.safeParse(data.body);
     if (!parsed.success) return { ok: false as const, error: "Invalid body" };
-    patch.body = (await offloadDataUriImages(parsed.data)) as Prisma.InputJsonValue;
+    // Bodies are now docx-file URLs, not HTML — images are embedded directly
+    // in the document by the SuperDoc editor, so there's no data: URI to
+    // offload here the way cover templates (still HTML) still need.
+    patch.body = parsed.data as Prisma.InputJsonValue;
   }
   const s = await prisma.proposalSection.update({
     where: { id: sectionId },

@@ -6,7 +6,6 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/rbac";
 import { brandProfileInput, type BrandProfileInput } from "@/lib/validators";
-import { offloadDataUriImages } from "@/lib/render/images";
 
 export async function saveBrandProfile(
   id: string | null,
@@ -23,7 +22,7 @@ export async function saveBrandProfile(
     headerText: parsed.data.headerText || null,
     footerText: parsed.data.footerText || null,
     coverTemplate: parsed.data.coverTemplate
-      ? ((await offloadDataUriImages(parsed.data.coverTemplate)) as Prisma.InputJsonValue)
+      ? (parsed.data.coverTemplate as Prisma.InputJsonValue)
       : Prisma.DbNull,
     // Only write logoUrl when explicitly provided (the form doesn't send it).
     ...(logoUrl !== undefined ? { logoUrl: logoUrl || null } : {}),

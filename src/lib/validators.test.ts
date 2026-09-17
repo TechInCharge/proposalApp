@@ -1,25 +1,25 @@
 import { describe, it, expect } from "vitest";
 import {
-  sectionHtmlBody,
+  sectionBodyValue,
   proseMirrorDoc,
   boqItemInput,
   boqCatalogItemInput,
 } from "./validators";
 
-describe("sectionHtmlBody", () => {
-  it("accepts and trims an HTML string", () => {
-    expect(sectionHtmlBody.parse("  <p>Hello {{customer.name}}</p>  ")).toBe(
-      "<p>Hello {{customer.name}}</p>",
+describe("sectionBodyValue", () => {
+  it("accepts and trims a section-body docx URL", () => {
+    expect(sectionBodyValue.parse("  /api/files/section-bodies/abc.docx  ")).toBe(
+      "/api/files/section-bodies/abc.docx",
     );
   });
 
   it("accepts an empty body", () => {
-    expect(sectionHtmlBody.parse("")).toBe("");
+    expect(sectionBodyValue.parse("")).toBe("");
   });
 
   it("rejects a non-string and an oversized payload", () => {
-    expect(sectionHtmlBody.safeParse({ type: "doc" }).success).toBe(false);
-    expect(sectionHtmlBody.safeParse("x".repeat(500_001)).success).toBe(false);
+    expect(sectionBodyValue.safeParse({ type: "doc" }).success).toBe(false);
+    expect(sectionBodyValue.safeParse("x".repeat(500_001)).success).toBe(false);
   });
 });
 

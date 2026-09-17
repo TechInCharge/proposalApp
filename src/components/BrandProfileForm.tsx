@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Field, Input } from "@/components/ui";
-import { CoverEditor } from "@/components/CoverEditor";
+import { CoverEditor, DEFAULT_COVER_TEMPLATE_URL } from "@/components/CoverEditor";
+import type { SectionEditorHandle } from "@/components/SectionEditorImpl";
 import {
   saveBrandProfile,
   createBrandProfileAndRedirect,
@@ -43,13 +44,42 @@ export function BrandProfileForm({ profile }: { profile?: Profile }) {
     showPageNumbers: profile?.showPageNumbers ?? true,
   });
   const set = (patch: Partial<typeof f>) => setF((p) => ({ ...p, ...patch }));
+  const coverHandleRef = useRef<SectionEditorHandle | null>(null);
+  // Explicit "Clear" is the only way to force the auto cover — defaulting
+  // this to false (even when there's no existing cover yet) means we always
+  // export whatever's live in the editor on save, so typing into a freshly-
+  // opened blank editor without first clicking a button can never silently
+  // lose the author's work. The cost: saving a truly untouched new cover
+  // uploads an empty docx instead of leaving coverTemplate null — a minor
+  // inefficiency, not a correctness issue.
+  const [wantsAutoCover, setWantsAutoCover] = useState(false);
 
   function submit() {
     setError(null);
     start(async () => {
+      let coverTemplate = "";
+      if (!wantsAutoCover) {
+        const handle = coverHandleRef.current;
+        if (!handle) {
+          setError("Cover editor is not ready yet");
+          return;
+        }
+        try {
+          const docx = await handle.getDocx();
+          const uploadRes = await fetch("/api/editor/section-body", { method: "POST", body: docx });
+          const uploadJson = await uploadRes.json();
+          if (!uploadRes.ok) throw new Error(uploadJson.error ?? "Upload failed");
+          coverTemplate = uploadJson.url;
+        } catch (e) {
+          setError(e instanceof Error ? e.message : "Failed to save cover");
+          return;
+        }
+      }
+
+      const payload = { ...f, coverTemplate };
       const res = profile
-        ? await saveBrandProfile(profile.id, f)
-        : await createBrandProfileAndRedirect(f);
+        ? await saveBrandProfile(profile.id, payload)
+        : await createBrandProfileAndRedirect(payload);
       if (res && !res.ok) setError(res.error);
       else if (profile) router.refresh();
     });
@@ -104,8 +134,16 @@ export function BrandProfileForm({ profile }: { profile?: Profile }) {
           empty to use the built-in cover. Renders in both PDF and DOCX.
         </span>
         <CoverEditor
-          value={f.coverTemplate}
-          onChange={(html) => set({ coverTemplate: html })}
+          value={wantsAutoCover ? "" : f.coverTemplate}
+          onReady={(h) => (coverHandleRef.current = h)}
+          onLoadDefault={() => {
+            setWantsAutoCover(false);
+            set({ coverTemplate: DEFAULT_COVER_TEMPLATE_URL });
+          }}
+          onClear={() => {
+            setWantsAutoCover(true);
+            set({ coverTemplate: "" });
+          }}
           fallbackNote="Empty — the built-in auto cover is used"
         />
       </div>

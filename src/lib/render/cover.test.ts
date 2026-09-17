@@ -42,8 +42,8 @@ describe("pickCoverTemplate", () => {
 });
 
 describe("resolveCoverHtml", () => {
-  it("resolves tokens and swaps logo tokens for <img>", () => {
-    const { html, missing } = resolveCoverHtml(
+  it("resolves tokens and swaps logo tokens for <img>", async () => {
+    const { html, missing } = await resolveCoverHtml(
       "<h1>{{proposal.title}}</h1><p>{{customer.name}} — {{proposal.date}}</p>" +
         "<p>{{brand.logo}}</p><p>{{customer.logo}}</p>",
       data,
@@ -56,8 +56,8 @@ describe("resolveCoverHtml", () => {
     expect(missing).toEqual([]);
   });
 
-  it("reports unknown tokens and strips scripts", () => {
-    const { html, missing } = resolveCoverHtml(
+  it("reports unknown tokens and strips scripts", async () => {
+    const { html, missing } = await resolveCoverHtml(
       "<p>{{customer.vatId}}</p><script>x()</script>",
       data,
     );

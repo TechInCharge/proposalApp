@@ -1,11 +1,12 @@
 import { z } from "zod";
 
 /**
- * A section body authored in CKEditor and stored as an HTML string.
- * The renderer sanitises this again on the way out (`src/lib/render/sanitize.ts`);
- * the cap here just stops a pathological payload from reaching the database.
+ * A section/cover body: a `/api/files/section-bodies/<uuid>.docx` URL
+ * pointing at content authored in the SuperDoc editor. The cap here just
+ * stops a pathological payload from reaching the database — the actual file
+ * is stored via `storage.ts`, not inline.
  */
-export const sectionHtmlBody = z
+export const sectionBodyValue = z
   .string()
   .max(500_000, "Section content is too large")
   .transform((s) => s.trim());
@@ -32,7 +33,7 @@ export const sectionTemplateInput = z.object({
   productId: z.string().min(1),
   title: z.string().min(1, "Title is required").max(200),
   order: z.number().int().min(0).default(0),
-  body: sectionHtmlBody,
+  body: sectionBodyValue,
 });
 export type SectionTemplateInput = z.infer<typeof sectionTemplateInput>;
 
@@ -51,7 +52,7 @@ export const customerInput = z.object({
 });
 export type CustomerInput = z.infer<typeof customerInput>;
 
-/** Optional CKEditor HTML for a custom cover — blank means "use the auto cover". */
+/** Optional `/api/files/...docx` URL for a custom cover — blank means "use the auto cover". */
 export const coverTemplateInput = z
   .string()
   .max(500_000, "Cover content is too large")

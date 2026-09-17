@@ -91,8 +91,9 @@ model Product {
 }
 
 // One ordered chunk of proposal content owned by a Product.
-// `body` holds a TipTap / ProseMirror document as JSON. Placeholder tokens
-// such as {{customer.name}} or {{boq.table}} are resolved at generation time.
+// `body` holds a /api/files/section-bodies/<uuid>.docx URL (a SuperDoc-edited
+// document). Placeholder tokens such as {{customer.name}} or {{boq.table}}
+// are literal text, resolved at generation time by compose-docx.ts.
 model SectionTemplate {
   id           String   @id @default(cuid())
   productId    String
@@ -101,6 +102,10 @@ model SectionTemplate {
   body         Json
   placeholders String[] @default([])
   version      Int      @default(1)
+  // Set false on rows auto-converted by the CKEditor->SuperDoc migration
+  // script; drives a "converted automatically, review and re-save" banner in
+  // the editor. Rows created/saved directly in the SuperDoc editor start true.
+  docxReviewed Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card, Input } from "@/components/ui";
 import { SectionEditor } from "@/components/SectionEditor";
+import type { SectionEditorHandle } from "@/components/SectionEditorImpl";
 import {
   saveSectionTemplate,
   deleteSectionTemplate,
@@ -11,8 +12,6 @@ import {
 } from "@/server/products";
 
 type Section = { id: string; title: string; order: number; body: unknown };
-
-const EMPTY_BODY = "";
 
 export function ProductSectionsManager({
   productId,
@@ -25,33 +24,52 @@ export function ProductSectionsManager({
   const [pending, start] = useTransition();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftTitle, setDraftTitle] = useState("");
-  const [draftBody, setDraftBody] = useState<unknown>(EMPTY_BODY);
+  const [draftBody, setDraftBody] = useState<unknown>(null);
   const [error, setError] = useState<string | null>(null);
+  const editorHandleRef = useRef<SectionEditorHandle | null>(null);
 
   function openNew() {
     setEditingId("new");
     setDraftTitle("");
-    setDraftBody(EMPTY_BODY);
+    setDraftBody(null);
     setError(null);
   }
 
   function openEdit(s: Section) {
     setEditingId(s.id);
     setDraftTitle(s.title);
-    setDraftBody(s.body ?? EMPTY_BODY);
+    setDraftBody(s.body ?? null);
     setError(null);
   }
 
   function save() {
     setError(null);
     start(async () => {
+      const handle = editorHandleRef.current;
+      if (!handle) {
+        setError("Editor is not ready yet");
+        return;
+      }
+
+      let bodyUrl: string;
+      try {
+        const docx = await handle.getDocx();
+        const uploadRes = await fetch("/api/editor/section-body", { method: "POST", body: docx });
+        const uploadJson = await uploadRes.json();
+        if (!uploadRes.ok) throw new Error(uploadJson.error ?? "Upload failed");
+        bodyUrl = uploadJson.url;
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Failed to save document");
+        return;
+      }
+
       const res = await saveSectionTemplate(
         editingId === "new" ? null : editingId,
         {
           productId,
           title: draftTitle,
           order: editingId === "new" ? sections.length : 0,
-          body: draftBody,
+          body: bodyUrl,
         },
       );
       if (!res.ok) {
@@ -129,7 +147,7 @@ export function ProductSectionsManager({
               title={draftTitle}
               body={draftBody}
               onTitle={setDraftTitle}
-              onBody={setDraftBody}
+              onEditorReady={(h) => (editorHandleRef.current = h)}
               onSave={save}
               onCancel={() => setEditingId(null)}
               pending={pending}
@@ -145,7 +163,7 @@ export function ProductSectionsManager({
             title={draftTitle}
             body={draftBody}
             onTitle={setDraftTitle}
-            onBody={setDraftBody}
+            onEditorReady={(h) => (editorHandleRef.current = h)}
             onSave={save}
             onCancel={() => setEditingId(null)}
             pending={pending}
@@ -161,7 +179,7 @@ function Editor({
   title,
   body,
   onTitle,
-  onBody,
+  onEditorReady,
   onSave,
   onCancel,
   pending,
@@ -170,7 +188,7 @@ function Editor({
   title: string;
   body: unknown;
   onTitle: (v: string) => void;
-  onBody: (v: unknown) => void;
+  onEditorReady: (handle: SectionEditorHandle) => void;
   onSave: () => void;
   onCancel: () => void;
   pending: boolean;
@@ -183,7 +201,7 @@ function Editor({
         value={title}
         onChange={(e) => onTitle(e.target.value)}
       />
-      <SectionEditor value={body} onChange={onBody} />
+      <SectionEditor value={body} onReady={onEditorReady} />
       {error && <p className="text-sm text-red-600">{error}</p>}
       <div className="flex gap-2">
         <Button onClick={onSave} disabled={pending || !title.trim()}>
