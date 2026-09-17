@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { AppFooter } from "@/components/AppFooter";
 
 // Matches the platform's design reference (seclore.com): Inter throughout.
 const inter = Inter({
@@ -20,7 +21,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${inter.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {children}
+        <AppFooter commitSha={process.env.RAILWAY_GIT_COMMIT_SHA ?? null} />
+      </body>
     </html>
   );
 }
