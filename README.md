@@ -9,9 +9,14 @@ Quantities, and the tool generates one branded proposal document (DOCX + PDF).
 - **Next.js (App Router) + TypeScript**
 - **PostgreSQL + Prisma**
 - **Auth.js (NextAuth v5)** — credentials login, roles `ADMIN` / `AUTHOR`
-- **TipTap** rich-text editor — section templates stored as ProseMirror JSON
-- **DOCX + PDF** generation server-side (pipeline added in Phase 1)
+- **SuperDoc** rich-text editor — section/cover templates are real `.docx` files
+- **DOCX + PDF** generation server-side: sections/cover are composed directly
+  into one `.docx` (`@superdoc/sdk`), then converted to PDF via headless
+  LibreOffice
 - Tailwind CSS
+
+Licensed under the [GNU AGPLv3](LICENSE) — see the in-app footer for a link
+to the exact source of whatever deploy you're using.
 
 ## Prerequisites
 
@@ -46,9 +51,15 @@ only ever creates the one bootstrap admin.
 
 ## Deploy to Railway
 
-The app deploys as-is — no code changes needed beyond what's already in the
-repo (`nixpacks.toml` gives Puppeteer's Chromium the system libraries it
-needs to launch; `npm start` runs `prisma migrate deploy` before serving).
+`nixpacks.toml` installs LibreOffice headless (needed for DOCX→PDF/HTML
+conversion — see `src/lib/render/soffice.ts`); `npm start` runs
+`prisma migrate deploy` before serving.
+
+**Not yet validated on an actual Railway build** — this pipeline (and the
+`nixpacks.toml` LibreOffice provisioning) has only been tested locally on
+macOS so far. Confirm a real `.docx`→PDF conversion succeeds on a fresh
+Railway deploy before relying on this in production; if `soffice` isn't
+found automatically, set `LIBREOFFICE_EXECUTABLE_PATH` (see `.env.example`).
 
 1. **New Project** on [railway.app](https://railway.app) → **Deploy from GitHub repo** → pick this repo.
 2. **+ New** → **Database** → **Add PostgreSQL**. Railway sets that service's
@@ -68,8 +79,7 @@ needs to launch; `npm start` runs `prisma migrate deploy` before serving).
 5. **Settings → Networking → Generate Domain** for a public URL (or attach
    your own domain here). Set that URL as `AUTH_URL` (step 3) if you haven't
    already.
-6. Deploy. First deploy takes a few minutes (Puppeteer downloads Chromium
-   during `npm install`).
+6. Deploy.
 7. Create the first account: Railway dashboard → app service → **Command**
    (one-off shell) → `npm run db:seed`. This also creates a demo product and
    a default brand profile — fine to keep, edit, or archive the demo product
@@ -77,9 +87,6 @@ needs to launch; `npm start` runs `prisma migrate deploy` before serving).
    and **immediately** change that password (Users → Admin → set a new
    password), or create your own admin from **Users** and delete the seeded
    one.
-
-If PDF generation ever fails to launch Chromium on Railway, set
-`PUPPETEER_EXECUTABLE_PATH` (see `.env.example`) rather than redeploying code.
 
 ## Scripts
 

@@ -6,6 +6,51 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- **Section and cover-page editing moved from CKEditor 5 (HTML) to
+  [SuperDoc](https://github.com/Harbour-Enterprises/SuperDoc)** — templates
+  are now real `.docx` files, edited in a genuine Word-grade editor instead
+  of an HTML rich-text box. `{{token}}` placeholders still work exactly as
+  before (typed as literal text); a "Load default layout" / "Clear" pair
+  replaces the old always-blank cover editor. Existing pre-migration content
+  keeps rendering (both in the HTML preview and in generated output, via an
+  on-the-fly LibreOffice HTML↔docx bridge) — there is no bulk migration step,
+  by design: only newly-created sections/covers are expected to be authored
+  in the new editor going forward.
+- **Generation pipeline rebuilt end-to-end.** `Proposal.generate` no longer
+  runs Puppeteer (HTML→PDF) and `@turbodocx/html-to-docx` (HTML→DOCX) as two
+  separately-drifting builders. It now composes the cover + every included
+  section + a Bill of Quantities table directly into **one** `.docx`
+  (`@superdoc/sdk`), applies brand colors as a second pass, and converts that
+  single document to PDF via headless LibreOffice — so the PDF and DOCX a
+  user downloads are now guaranteed to match, coming from the same source
+  bytes. Brand-profile logos, an auto-appended BoQ section when no template
+  embeds `{{boq.table}}`, and an "unresolved placeholders" warning all carry
+  over from the old pipeline. Not yet carried over: `BrandProfile`
+  header/footer text and page numbers — a known, documented gap, not
+  silently dropped (the old pipeline applied these as PDF/DOCX rendering
+  options that have no equivalent yet in the new one).
+- The live HTML preview (`/api/proposals/[id]/preview`) is unaffected —
+  it's a separate, still-HTML-based pipeline that continues to work as
+  before, including for content authored in the new editor (via the same
+  LibreOffice bridge).
+
+### Added
+
+- **Licensed under the GNU AGPLv3** (`LICENSE`, full text). The app footer,
+  on every page, links to the license and to the exact GitHub commit the
+  running deploy was built from (falls back to `main` locally, where that
+  commit isn't known).
+
+### Removed
+
+- CKEditor 5 (`@ckeditor/ckeditor5-react`, `ckeditor5`), Puppeteer, and
+  `@turbodocx/html-to-docx` — all fully unused once the above landed. TipTap
+  stays, but only as a read-only renderer for section bodies still stored in
+  the old pre-CKEditor ProseMirror-JSON format (`src/lib/render/tiptap.ts`);
+  it's no longer used for editing.
+
 ### Fixed
 
 - **DOCX section titles now match the PDF.** The PDF's coloured rule under each
