@@ -195,7 +195,7 @@ function Editor({
   error: string | null;
 }) {
   return (
-    <div className="grid gap-2">
+    <div className="grid min-w-0 gap-2">
       <Input
         placeholder="Section title"
         value={title}

@@ -81,7 +81,14 @@ export function Field({
 export function Card({ className, ...props }: ComponentProps<"div">) {
   return (
     <div
-      className={cn("rounded-lg border border-slate-200 bg-white p-4", className)}
+      // `min-w-0`: Card is routinely a `grid`/`flex` item (see
+      // ProductSectionsManager, SectionsPanel), and such items default to
+      // `min-width: auto` — refusing to shrink below their content's
+      // intrinsic width. Wide content (e.g. the SuperDoc editor's toolbar)
+      // inside a Card would otherwise force the whole ancestor chain wider
+      // instead of clipping/scrolling internally. Harmless no-op for a Card
+      // whose content already fits.
+      className={cn("min-w-0 rounded-lg border border-slate-200 bg-white p-4", className)}
       {...props}
     />
   );

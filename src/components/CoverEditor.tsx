@@ -36,7 +36,7 @@ export function CoverEditor({
   const hasCustom = value.trim().length > 0;
 
   return (
-    <div className="grid gap-2">
+    <div className="grid min-w-0 gap-2">
       <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
         <span>{hasCustom ? "Custom cover" : fallbackNote}</span>
         <button
