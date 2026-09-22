@@ -71,7 +71,15 @@ export function SectionEditorImpl({
   }
 
   return (
-    <div className="section-editor">
+    // `min-w-0` + `min-h-0` matter here, not just as belt-and-braces: this
+    // component is always mounted inside `grid`/`flex` containers (Card ->
+    // Editor -> SectionEditor, several levels deep across call sites), and a
+    // flex/grid item's default min-size is `auto` — it refuses to shrink
+    // below its content's intrinsic size. SuperDoc's toolbar/page content is
+    // intrinsically wide, so without this the whole ancestor chain (up to
+    // the page) was forced wider than the viewport instead of the editor
+    // clipping/scrolling internally.
+    <div className="section-editor flex h-full min-h-0 min-w-0 flex-1 flex-col">
       <div className="mb-1 flex flex-wrap items-center gap-1">
         <span className="text-xs text-slate-500">Placeholders (click to copy, then paste into the document):</span>
         {placeholders.map((p) => (
@@ -95,13 +103,17 @@ export function SectionEditorImpl({
         </p>
       )}
 
-      <div className="overflow-hidden rounded-md border border-slate-300" style={{ height: 520 }}>
+      {/* `min-h-0` on a flex child overrides its default min-height:auto —
+          without it this box refuses to shrink to the 520px below when its
+          content (the document) is taller, so nothing inside ever scrolls. */}
+      <div className="min-h-0 min-w-0 flex-1 overflow-hidden rounded-md border border-slate-300" style={{ height: 520 }}>
         <SuperDocEditor
           // Remounts the editor when switching which section is open —
           // SuperDoc loads `document` once at mount, not on every prop change.
           key={isDocxUrl(value) ? value : "new"}
           document={isDocxUrl(value) ? { url: value } : undefined}
           contained
+          className="h-full w-full"
           onReady={({ superdoc }) => {
             instanceRef.current = superdoc;
             onReady({

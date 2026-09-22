@@ -168,7 +168,7 @@ export function SectionsPanel({
           </div>
 
           {editingId === s.id && (
-            <div className="grid gap-2">
+            <div className="grid min-w-0 gap-2">
               <Input
                 value={draftTitle}
                 onChange={(e) => setDraftTitle(e.target.value)}
