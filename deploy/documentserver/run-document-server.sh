@@ -131,6 +131,31 @@ GENERATE_FONTS=${GENERATE_FONTS:-true}
 [ -n "${PRODUCT_EDITION}" ] && _is_commercial=true || _is_commercial=false
 REDIS_AVAILABLE=${_is_commercial} RABBITMQ_AVAILABLE=${_is_commercial} DB_AVAILABLE=${_is_commercial} ADMINPANEL_AVAILABLE=${_is_commercial}
 
+# --- proposalbuilder fix: docservice's own baked-in local.json already
+# points at a local RabbitMQ and a local Postgres (confirmed via
+# AggregateError [ECONNREFUSED] loops in its logs for both — it tries to
+# connect to both regardless of this script's own settings), but with
+# PRODUCT_EDITION unset this script starts neither. The RabbitMQ gap alone
+# was fixed first (RABBITMQ_AVAILABLE=true below) and looked sufficient
+# (nginx stayed healthy, docservice stopped logging AMQP errors), but the
+# editor still stalled forever on its own loading skeleton — root-caused via
+# nginx.error.log showing `connect() failed (111: Connection refused) while
+# connecting to upstream ... http://127.0.0.1:8000/doc/...`: docservice's
+# Express server (port 8000, what nginx actually proxies the editor's own
+# traffic to) never finishes starting, because its startup path still runs a
+# Postgres schema-check query first and never recovers from that query
+# failing. Setting PRODUCT_EDITION (the "obvious" fix, flipping DB/REDIS/
+# RABBITMQ/ADMINPANEL all to true) was tried earlier and reverted — it also
+# started local Redis + the admin panel, and doing so caused
+# /etc/nginx/sites-enabled/default to be recreated again by the time nginx
+# starts (same class of issue as the nginx fix above, mechanism not
+# identified), breaking nginx a second time. Force only RabbitMQ + DB this
+# time — narrower than the full PRODUCT_EDITION toggle — leaving
+# Redis/adminpanel untouched, to isolate whether Redis or adminpanel (not DB)
+# was the actual cause of that regression.
+RABBITMQ_AVAILABLE=true
+DB_AVAILABLE=true
+
 ONLYOFFICE_DEFAULT_CONFIG=${CONF_DIR}/local.json
 ONLYOFFICE_LOG4JS_CONFIG=${CONF_DIR}/log4js/production.json
 ONLYOFFICE_EXAMPLE_CONFIG=${CONF_DIR}-example/local.json
