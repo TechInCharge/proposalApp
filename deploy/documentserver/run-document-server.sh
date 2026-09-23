@@ -834,6 +834,14 @@ fi
 # Fix to resolve the `unknown "cache_tag" variable` error
 start_process documentserver-flush-cache.sh -r false
 
+# --- proposalbuilder fix: same class of issue as the COMPANY_NAME fix
+# above — /etc/nginx/sites-enabled/default (Ubuntu's own default nginx
+# site, declaring `default_server` for [::]:80) reappears at container
+# start even though our Dockerfile removes it at build time, conflicting
+# with ONLYOFFICE's own vhost doing the same and failing nginx's config
+# test entirely. Re-remove it here, immediately before nginx starts.
+rm -f /etc/nginx/sites-enabled/default
+
 # nginx used as a proxy, and as data container status service.
 # it run in all cases.
 service nginx start
