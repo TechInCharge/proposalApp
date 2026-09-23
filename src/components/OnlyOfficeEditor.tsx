@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { OnlyOfficeDocKind } from "@/lib/onlyoffice/constants";
 
 export interface OnlyOfficeEditorHandle {
@@ -8,38 +8,19 @@ export interface OnlyOfficeEditorHandle {
   save(): Promise<{ bodyUrl: string | null }>;
 }
 
-interface DocEditorInstance {
-  destroyEditor: () => void;
-}
-
-declare global {
-  interface Window {
-    DocsAPI?: {
-      DocEditor: new (id: string, config: unknown) => DocEditorInstance;
-    };
-  }
-}
-
-let scriptPromise: Promise<void> | null = null;
-function loadDocsApiScript(serverUrl: string): Promise<void> {
-  if (typeof window !== "undefined" && window.DocsAPI) return Promise.resolve();
-  if (scriptPromise) return scriptPromise;
-  scriptPromise = new Promise((resolve, reject) => {
-    const script = document.createElement("script");
-    script.src = `${serverUrl.replace(/\/$/, "")}/web-apps/apps/api/documents/api.js`;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error("Failed to load the OnlyOffice editor script"));
-    document.head.appendChild(script);
-  });
-  return scriptPromise;
-}
-
 /**
- * Low-level OnlyOffice Document Server wrapper: fetches a signed editor
- * config for one row, mounts `DocsAPI.DocEditor`, and hands back a handle
- * whose `save()` drives the server-side forcesave+callback round trip (see
- * /api/onlyoffice/force-save). There's no per-keystroke onChange — same
- * on-demand-save contract the old SuperDoc editor used.
+ * Low-level OnlyOffice Document Server wrapper. Opens the editor in a real
+ * new browser window rather than an embedded iframe — unlike the earlier
+ * SuperDoc popup attempt (see the SuperDoc migration plan notes), this is
+ * safe: DocsAPI is a plain script with no React involved in its mount
+ * target, so there's no cross-realm `instanceof` failure from portaling
+ * React-rendered nodes into another window's realm. The popup loads its own
+ * copy of the api.js script and calls `DocsAPI.DocEditor` entirely within
+ * its own JS realm.
+ *
+ * `window.open()` must be called synchronously inside the click handler (not
+ * after an await) or popup blockers reliably block it — so this renders a
+ * button rather than auto-opening on mount.
  */
 export function OnlyOfficeEditor({
   kind,
@@ -50,61 +31,104 @@ export function OnlyOfficeEditor({
   id: string;
   onReady: (handle: OnlyOfficeEditorHandle) => void;
 }) {
-  const containerId = `onlyoffice-${useId()}`;
-  const editorRef = useRef<DocEditorInstance | null>(null);
+  const popupRef = useRef<Window | null>(null);
   const keyRef = useRef<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [opened, setOpened] = useState(false);
   const serverUrl = process.env.NEXT_PUBLIC_ONLYOFFICE_URL;
 
   useEffect(() => {
-    if (!serverUrl) return;
-    let cancelled = false;
-
-    (async () => {
-      try {
-        const res = await fetch(`/api/onlyoffice/config?kind=${kind}&id=${id}`);
-        const json = await res.json();
-        if (!res.ok) {
-          if (!cancelled) setError(json.error ?? "Failed to load the editor");
-          return;
-        }
-        await loadDocsApiScript(serverUrl);
-        if (cancelled || !window.DocsAPI) return;
-
-        keyRef.current = json.key;
-        editorRef.current = new window.DocsAPI.DocEditor(containerId, json.config);
-        onReady({
-          save: async () => {
-            if (!keyRef.current) throw new Error("Editor is not ready yet");
-            const r = await fetch("/api/onlyoffice/force-save", {
-              method: "POST",
-              headers: { "content-type": "application/json" },
-              body: JSON.stringify({ kind, id, key: keyRef.current }),
-            });
-            const j = await r.json();
-            if (!r.ok || !j.ok) throw new Error(j.error ?? "Save failed");
-            return { bodyUrl: j.bodyUrl ?? null };
-          },
-        });
-      } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : "Failed to load the editor");
-      }
-    })();
-
     return () => {
-      cancelled = true;
-      editorRef.current?.destroyEditor();
-      editorRef.current = null;
+      popupRef.current?.close();
+      popupRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [kind, id]);
+  }, []);
 
-  const shownError = error ?? (!serverUrl ? "NEXT_PUBLIC_ONLYOFFICE_URL is not configured" : null);
-  if (shownError) {
-    return (
-      <p className="rounded bg-red-50 px-2 py-1 text-xs text-red-700">{shownError}</p>
+  async function openEditor() {
+    setError(null);
+    if (!serverUrl) {
+      setError("NEXT_PUBLIC_ONLYOFFICE_URL is not configured");
+      return;
+    }
+
+    const popup = window.open("", "onlyoffice-editor", "width=1280,height=900");
+    if (!popup) {
+      setError("Popup blocked — allow popups for this site and try again.");
+      return;
+    }
+    popupRef.current = popup;
+    popup.document.title = "Loading editor…";
+    popup.document.write(
+      '<!doctype html><html><head><meta charset="utf-8"></head><body style="margin:0"><div id="editor-root" style="width:100vw;height:100vh"></div></body></html>',
     );
+    popup.document.close();
+
+    const closeWatcher = window.setInterval(() => {
+      if (popup.closed) {
+        window.clearInterval(closeWatcher);
+        if (popupRef.current === popup) {
+          popupRef.current = null;
+          setOpened(false);
+        }
+      }
+    }, 1000);
+
+    try {
+      const res = await fetch(`/api/onlyoffice/config?kind=${kind}&id=${id}`);
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Failed to load the editor");
+      if (popup.closed) return;
+
+      await new Promise<void>((resolve, reject) => {
+        const script = popup.document.createElement("script");
+        script.src = `${serverUrl.replace(/\/$/, "")}/web-apps/apps/api/documents/api.js`;
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error("Failed to load the OnlyOffice editor script"));
+        popup.document.head.appendChild(script);
+      });
+      if (popup.closed) return;
+
+      const DocsAPI = (popup as unknown as { DocsAPI?: { DocEditor: new (id: string, config: unknown) => unknown } }).DocsAPI;
+      if (!DocsAPI) throw new Error("OnlyOffice editor script did not load correctly");
+
+      keyRef.current = json.key;
+      new DocsAPI.DocEditor("editor-root", json.config);
+      popup.document.title = "Editing…";
+      setOpened(true);
+      onReady({
+        save: async () => {
+          if (!keyRef.current) throw new Error("Editor is not ready yet");
+          const r = await fetch("/api/onlyoffice/force-save", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ kind, id, key: keyRef.current }),
+          });
+          const j = await r.json();
+          if (!r.ok || !j.ok) throw new Error(j.error ?? "Save failed");
+          return { bodyUrl: j.bodyUrl ?? null };
+        },
+      });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to open the editor");
+      popup.close();
+    }
   }
 
-  return <div id={containerId} className="h-full w-full" />;
+  return (
+    <div className="flex h-full min-h-[160px] w-full flex-col items-start justify-center gap-2 rounded-md border border-dashed border-slate-300 bg-slate-50 p-4">
+      <button
+        type="button"
+        onClick={openEditor}
+        className="rounded-md bg-brand px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-dark"
+      >
+        {opened ? "Reopen editor window" : "Open editor in a new window"}
+      </button>
+      {opened && (
+        <p className="text-xs text-slate-500">
+          Editing in a separate window — switch to it to make changes, then come back here and click Save.
+        </p>
+      )}
+      {error && <p className="text-xs text-red-700">{error}</p>}
+    </div>
+  );
 }
