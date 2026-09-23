@@ -30,3 +30,14 @@ FROM onlyoffice/documentserver:9.3.1.2
 
 COPY run-document-server.sh /app/ds/run-document-server.sh
 RUN chmod 755 /app/ds/run-document-server.sh
+
+# Second, separate upstream packaging bug: Ubuntu's own default nginx site
+# (a symlink installed by the nginx package, unrelated to ONLYOFFICE's own
+# config) is left enabled and declares `default_server` for [::]:80 —
+# conflicting with ONLYOFFICE's own vhost doing the same, which fails
+# nginx's config test entirely ("a duplicate default server for [::]:80 in
+# /etc/nginx/sites-enabled/default"). A normal nginx-based app installer
+# disables this; confirmed via `nginx -t` in a running container that it
+# wasn't. Static file, safe to remove at build time (unlike the conf.d
+# issue above, which needed a runtime fix).
+RUN rm -f /etc/nginx/sites-enabled/default
