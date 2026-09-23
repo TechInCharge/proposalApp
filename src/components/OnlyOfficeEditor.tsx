@@ -61,30 +61,34 @@ export function OnlyOfficeEditor({
     let cancelled = false;
 
     (async () => {
-      const res = await fetch(`/api/onlyoffice/config?kind=${kind}&id=${id}`);
-      const json = await res.json();
-      if (!res.ok) {
-        if (!cancelled) setError(json.error ?? "Failed to load the editor");
-        return;
-      }
-      await loadDocsApiScript(serverUrl);
-      if (cancelled || !window.DocsAPI) return;
+      try {
+        const res = await fetch(`/api/onlyoffice/config?kind=${kind}&id=${id}`);
+        const json = await res.json();
+        if (!res.ok) {
+          if (!cancelled) setError(json.error ?? "Failed to load the editor");
+          return;
+        }
+        await loadDocsApiScript(serverUrl);
+        if (cancelled || !window.DocsAPI) return;
 
-      keyRef.current = json.key;
-      editorRef.current = new window.DocsAPI.DocEditor(containerId, json.config);
-      onReady({
-        save: async () => {
-          if (!keyRef.current) throw new Error("Editor is not ready yet");
-          const r = await fetch("/api/onlyoffice/force-save", {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({ kind, id, key: keyRef.current }),
-          });
-          const j = await r.json();
-          if (!r.ok || !j.ok) throw new Error(j.error ?? "Save failed");
-          return { bodyUrl: j.bodyUrl ?? null };
-        },
-      });
+        keyRef.current = json.key;
+        editorRef.current = new window.DocsAPI.DocEditor(containerId, json.config);
+        onReady({
+          save: async () => {
+            if (!keyRef.current) throw new Error("Editor is not ready yet");
+            const r = await fetch("/api/onlyoffice/force-save", {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ kind, id, key: keyRef.current }),
+            });
+            const j = await r.json();
+            if (!r.ok || !j.ok) throw new Error(j.error ?? "Save failed");
+            return { bodyUrl: j.bodyUrl ?? null };
+          },
+        });
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e.message : "Failed to load the editor");
+      }
     })();
 
     return () => {
