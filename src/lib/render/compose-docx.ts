@@ -24,8 +24,28 @@ import { join } from "node:path";
  *     doc.tables.setCellText per cell.
  */
 
-const IMAGE_PLACEHOLDER = "[image]";
 const BOQ_TOKEN = "{{boq.table}}";
+
+/**
+ * `create.image`'s `src` data URI needs a MIME type that actually matches the
+ * bytes — confirmed live against a real production document (all-JPEG logo/
+ * section images) that mislabeling them as `image/png` makes the Document
+ * Server host fail with "Image dimensions could not be determined" (it uses
+ * the declared type to pick a decoder, so a real JPEG "labeled" PNG fails to
+ * decode at all). The original code always wrote `image/png` regardless of
+ * the actual bytes — fine for the synthetic all-PNG fixtures this was tested
+ * against, wrong for anything else. Sniffed from the file's own magic bytes
+ * rather than trusted from the docx package's declared content-type, since
+ * that's what the SDK itself will end up decoding.
+ */
+function sniffImageMime(buf: Buffer): string {
+  if (buf.length >= 8 && buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) return "image/png";
+  if (buf.length >= 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return "image/jpeg";
+  if (buf.length >= 6 && buf.toString("ascii", 0, 3) === "GIF") return "image/gif";
+  if (buf.length >= 2 && buf[0] === 0x42 && buf[1] === 0x4d) return "image/bmp";
+  if (buf.length >= 12 && buf.toString("ascii", 0, 4) === "RIFF" && buf.toString("ascii", 8, 12) === "WEBP") return "image/webp";
+  return "image/png";
+}
 
 /** Exported so brand-docx.ts can target these exact cells without re-deriving them. */
 export const BOQ_TABLE_HEADER = ["Part Number", "Description", "Quantity"];
@@ -139,7 +159,7 @@ async function fillBoqTable(doc: SuperDocDocument, rows: BoqRow[]): Promise<bool
 async function fillImageTokens(doc: SuperDocDocument, images: Record<string, ComposeDocxImage>): Promise<void> {
   for (const [token, image] of Object.entries(images)) {
     const pattern = `{{${token}}}`;
-    const src = `data:image/png;base64,${image.buffer.toString("base64")}`;
+    const src = `data:${sniffImageMime(image.buffer)};base64,${image.buffer.toString("base64")}`;
     for (;;) {
       const match = await doc.query.match({ select: { type: "text", pattern, mode: "contains" }, require: "any" });
       if (match.total === 0) break;
@@ -203,6 +223,27 @@ function stripListLabelSpans(html: string): string {
 }
 
 /**
+ * getHtml() drops every non-text object (not just images) to a
+ * `<span data-superdoc-placeholder="...">MARKER</span>`, but the marker text
+ * isn't always "[image]" — confirmed via a real production document where
+ * every image had a legacy VML `<w:pict>` fallback alongside its `<w:drawing>`
+ * (typical of content pasted from Outlook, or produced by a non-SuperDoc
+ * converter like the LibreOffice HTML→docx bridge legacy sections still go
+ * through): SuperDoc classified all 29 of them as `data-superdoc-placeholder
+ * ="object"` → "[embedded object]", not "[image]", so a hardcoded "[image]"
+ * search found zero markers and `appendSection` threw on the very first one.
+ * Reading the actual marker text out of the section's own getHtml() output
+ * (in document order) instead of assuming a fixed string means this holds for
+ * whatever variant SuperDoc happens to emit, known or not yet seen.
+ */
+function extractPlaceholderMarkers(html: string): string[] {
+  const markers: string[] = [];
+  const re = /<span[^>]*\bdata-superdoc-placeholder\b[^>]*>([\s\S]*?)<\/span>/g;
+  for (const m of html.matchAll(re)) markers.push(m[1]);
+  return markers;
+}
+
+/**
  * A block (confirmed: a table; not fully ruled out for other block types)
  * that ends up as the very last node of one `master.insert({type:"html"})`
  * call gets silently displaced to the end of the *whole* document by a
@@ -216,20 +257,30 @@ const TRAILING_GUARD_PARAGRAPH = "<p>&#8203;</p>";
 /** Insert a filled section's content into `master`, images included. */
 async function appendSection(client: SuperDocClient, master: SuperDocDocument, sectionPath: string, images: ExtractedImage[]): Promise<void> {
   const section = await client.open({ doc: sectionPath });
-  const html = stripListLabelSpans(await section.getHtml()) + TRAILING_GUARD_PARAGRAPH;
+  const strippedHtml = stripListLabelSpans(await section.getHtml());
+  const markers = extractPlaceholderMarkers(strippedHtml);
+  const html = strippedHtml + TRAILING_GUARD_PARAGRAPH;
   await section.close({ discard: true }).catch(() => {});
 
   await master.insert({ type: "html", value: html });
 
-  for (const image of images) {
-    const match = await master.query.match({ select: { type: "text", pattern: IMAGE_PLACEHOLDER, mode: "contains" }, require: "any" });
+  if (markers.length !== images.length) {
+    // A real fidelity bug (an image silently didn't survive the HTML round
+    // trip, or a non-image object got miscounted as one) — surface it
+    // instead of guessing which marker belongs to which image.
+    throw new Error(
+      `${sectionPath}: found ${images.length} image(s) but ${markers.length} placeholder marker(s) in its exported HTML`,
+    );
+  }
+
+  for (let i = 0; i < images.length; i++) {
+    const image = images[i];
+    const marker = markers[i];
+    const match = await master.query.match({ select: { type: "text", pattern: marker, mode: "contains" }, require: "any" });
     if (match.total === 0) {
-      // More images in the source than placeholders left in the master is a
-      // real fidelity bug (an image silently didn't make it across) — surface
-      // it instead of quietly dropping the rest.
-      throw new Error(`Expected an "${IMAGE_PLACEHOLDER}" marker for an image from ${sectionPath} but found none`);
+      throw new Error(`Expected a "${marker}" marker for an image from ${sectionPath} but found none`);
     }
-    const src = `data:image/png;base64,${image.buffer.toString("base64")}`;
+    const src = `data:${sniffImageMime(image.buffer)};base64,${image.buffer.toString("base64")}`;
     // `at: {kind:"inParagraph", target}` places the image inline within the
     // marker's own paragraph. `ref: match.handle.ref` (the obvious choice,
     // and what the SDK's docs recommend generally) silently inserts at the
@@ -247,7 +298,7 @@ async function appendSection(client: SuperDocClient, master: SuperDocDocument, s
     // create.image anchors at the match, it doesn't consume it — the marker
     // text is still there afterward. Re-match (the first ref is stale after
     // that mutation) and delete it.
-    const leftover = await master.query.match({ select: { type: "text", pattern: IMAGE_PLACEHOLDER, mode: "contains" }, require: "any" });
+    const leftover = await master.query.match({ select: { type: "text", pattern: marker, mode: "contains" }, require: "any" });
     if (leftover.total > 0) await master.delete({ ref: leftover.items[0].handle.ref });
   }
 }
