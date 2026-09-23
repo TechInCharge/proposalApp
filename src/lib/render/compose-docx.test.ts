@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { Document, Packer, Paragraph, HeadingLevel, ImageRun, Table, TableRow, TableCell, TextRun, WidthType } from "docx";
+import JSZip from "jszip";
 import { composeProposalDocx, type BoqRow } from "./compose-docx";
 import { SuperDocClient } from "@superdoc/sdk";
 
@@ -37,6 +38,24 @@ async function inspect(buf: Buffer) {
   } finally {
     await client.dispose().catch(() => {});
   }
+}
+
+/** Raw word/document.xml, for assertions getHtml()-derived text alone can't make (direct run formatting). */
+async function documentXmlOf(buf: Buffer): Promise<string> {
+  const zip = await JSZip.loadAsync(buf);
+  const xml = await zip.file("word/document.xml")?.async("string");
+  if (!xml) throw new Error("word/document.xml missing");
+  return xml;
+}
+
+/** The exact `<w:r>...</w:r>` element containing this text — not a char-window, which can bleed into a neighboring run's own rPr when runs sit close together. */
+function runXmlFor(xml: string, text: string): string {
+  const textIdx = xml.indexOf(`>${text}<`);
+  if (textIdx < 0) throw new Error(`text not found: ${text}`);
+  const runStart = xml.lastIndexOf("<w:r>", textIdx);
+  const runEnd = xml.indexOf("</w:r>", textIdx);
+  if (runStart < 0 || runEnd < 0) throw new Error(`enclosing <w:r> not found for: ${text}`);
+  return xml.slice(runStart, runEnd);
 }
 
 describe("composeProposalDocx", () => {
@@ -235,6 +254,64 @@ describe("composeProposalDocx", () => {
       expect(text).not.toContain("{{customer.logo}}");
       expect(text).toContain("{{customer.unknownToken}}");
       expect(imageCount).toBe(2);
+    },
+    SLOW,
+  );
+
+  it(
+    // getHtml() (what carries section content into the master) only exports
+    // *structural* formatting — headings, bold/italic as semantic tags,
+    // lists, tables — and silently drops direct/character formatting
+    // (font family, size, color). Confirmed on a real production document:
+    // a heading that was Arial/bold/#4828C3/18pt came out of composition as
+    // plain black default-font text, only "bold" surviving. This checks the
+    // restoration pass (run-formatting.ts + compose-docx.ts's
+    // restoreDirectFormatting) that reads each run's real formatting back
+    // out of the section's own raw XML and reapplies it after composition.
+    "preserves each run's direct font, size, and color through composition",
+    async () => {
+      const cover = await docxOf([new Paragraph("Cover")]);
+      const section = await docxOf([
+        new Paragraph({
+          heading: HeadingLevel.HEADING_1,
+          children: [new TextRun({ text: "Custom Styled Heading", font: "Courier New", size: 36, color: "4828C3", bold: true })],
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: "Plain lead-in, ", font: "Georgia", size: 22, color: "222222" }),
+            new TextRun({ text: "then a highlighted phrase", font: "Georgia", size: 22, color: "B00020", bold: true }),
+            new TextRun({ text: ", then more plain text.", font: "Georgia", size: 22, color: "222222" }),
+          ],
+        }),
+      ]);
+
+      const composed = await composeProposalDocx({ cover, sections: [section], boqRows: [], context: {} });
+      const xml = await documentXmlOf(composed.buffer);
+
+      // Each occurrence must carry ITS OWN run's formatting, not a copy of
+      // whichever run happened to be checked first — the real bug this
+      // guards against isn't just "formatting lost" but "formatting merged
+      // across sibling runs in the same paragraph" (occurrence-tracked
+      // matching within a scoped block, not a single document-wide match).
+      const headingRun = runXmlFor(xml, "Custom Styled Heading");
+      expect(headingRun).toMatch(/w:ascii="Courier New"/);
+      expect(headingRun).toMatch(/w:val="4828C3"/i);
+      expect(headingRun).toMatch(/w:sz w:val="36"/);
+      expect(headingRun).toMatch(/<w:b\s*\/>/);
+
+      const leadInRun = runXmlFor(xml, "Plain lead-in, ");
+      expect(leadInRun).toMatch(/w:ascii="Georgia"/);
+      expect(leadInRun).toMatch(/w:val="222222"/i);
+      expect(leadInRun).not.toMatch(/<w:b\s*\/>/);
+
+      const highlightRun = runXmlFor(xml, "then a highlighted phrase");
+      expect(highlightRun).toMatch(/w:ascii="Georgia"/);
+      expect(highlightRun).toMatch(/w:val="B00020"/i);
+      expect(highlightRun).toMatch(/<w:b\s*\/>/);
+
+      const trailingRun = runXmlFor(xml, ", then more plain text.");
+      expect(trailingRun).toMatch(/w:val="222222"/i);
+      expect(trailingRun).not.toMatch(/<w:b\s*\/>/);
     },
     SLOW,
   );

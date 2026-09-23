@@ -3,6 +3,7 @@ import JSZip from "jszip";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { extractParagraphRuns, hasDirectFormatting, type RunFormat } from "@/lib/render/run-formatting";
 
 /**
  * Composes a cover + N section .docx documents + a Bill of Quantities table
@@ -260,8 +261,16 @@ async function appendSection(client: SuperDocClient, master: SuperDocDocument, s
   const strippedHtml = stripListLabelSpans(await section.getHtml());
   const markers = extractPlaceholderMarkers(strippedHtml);
   const html = strippedHtml + TRAILING_GUARD_PARAGRAPH;
+  // Captured while `section` is still open, for the formatting-restoration
+  // pass below — see restoreDirectFormatting()'s own doc comment for why
+  // this can't just come from getHtml()/insert() like the rest of this
+  // function does.
+  const sourceBlocks = (await section.blocks.list({ includeText: true })).blocks;
   await section.close({ discard: true }).catch(() => {});
 
+  const documentXml = await (await JSZip.loadAsync(await readFile(sectionPath))).file("word/document.xml")?.async("string");
+
+  const blocksBefore = (await master.blocks.list()).total;
   await master.insert({ type: "html", value: html });
 
   if (markers.length !== images.length) {
@@ -301,6 +310,83 @@ async function appendSection(client: SuperDocClient, master: SuperDocDocument, s
     const leftover = await master.query.match({ select: { type: "text", pattern: marker, mode: "contains" }, require: "any" });
     if (leftover.total > 0) await master.delete({ ref: leftover.items[0].handle.ref });
   }
+
+  if (documentXml) {
+    await restoreDirectFormatting(master, documentXml, sourceBlocks, blocksBefore);
+  }
+}
+
+type SectionBlock = Awaited<ReturnType<SuperDocDocument["blocks"]["list"]>>["blocks"][number];
+
+/**
+ * Re-applies each source paragraph's direct run formatting (font, size,
+ * color, bold, italic, underline, strike) onto its newly-inserted copy in
+ * `master` — see run-formatting.ts's doc comment for why this is needed at
+ * all (getHtml()/insert() only carry structural formatting).
+ *
+ * Alignment: `master.insert({type:"html"})` appends exactly one new block
+ * per source block, in the same order (confirmed by direct reproduction —
+ * a 108-paragraph source section produced exactly 108 new blocks in master,
+ * pair-for-pair identical nodeType/order, plus the one extra guard
+ * paragraph appended after). So the very next `sourceBlocks.length` blocks
+ * in `master` after `blocksBefore` are this section's own blocks, positionally
+ * 1:1 — including table blocks, which this deliberately does nothing with
+ * (the BoQ table's own header is already branded separately by
+ * applyBrandColors/shadeCellsContaining; a user-authored table's cell
+ * formatting isn't in scope here) but still has to be *counted* to keep
+ * later paragraphs aligned.
+ */
+async function restoreDirectFormatting(
+  master: SuperDocDocument,
+  sourceDocumentXml: string,
+  sourceBlocks: SectionBlock[],
+  blocksBefore: number,
+): Promise<void> {
+  const after = await master.blocks.list({ includeText: true });
+  const newBlocks = after.blocks.slice(blocksBefore, blocksBefore + sourceBlocks.length);
+  if (newBlocks.length !== sourceBlocks.length) return; // alignment assumption broke — skip rather than misapply
+
+  for (let i = 0; i < sourceBlocks.length; i++) {
+    const sourceBlock = sourceBlocks[i];
+    if (sourceBlock.nodeType === "table" || sourceBlock.nodeType === "tableRow" || sourceBlock.nodeType === "tableCell") continue;
+
+    const runs = extractParagraphRuns(sourceDocumentXml, sourceBlock.nodeId).filter(hasDirectFormatting);
+    if (runs.length === 0) continue;
+
+    const newBlock = newBlocks[i];
+    const occurrenceIndex = new Map<string, number>();
+    for (const run of runs) {
+      const idx = occurrenceIndex.get(run.text) ?? 0;
+      occurrenceIndex.set(run.text, idx + 1);
+
+      const match = await master.query.match({
+        select: { type: "text", pattern: run.text, mode: "contains" },
+        within: { kind: "block", nodeType: newBlock.nodeType, nodeId: newBlock.nodeId },
+        require: "any",
+      });
+      const item = match.items[idx] ?? match.items[0];
+      if (!item) continue;
+
+      // format.apply throws ("produced no change") when the target already
+      // has exactly the requested formatting — a real outcome, not a bug
+      // (e.g. it inherited the same font/size from the master's own default
+      // style). This pass is cosmetic fidelity, not content — never let it
+      // fail the whole proposal generation over a redundant apply.
+      await master.format.apply({ ref: item.handle.ref, inline: runInlineFormat(run) }).catch(() => {});
+    }
+  }
+}
+
+function runInlineFormat(run: RunFormat): Record<string, unknown> {
+  const inline: Record<string, unknown> = {};
+  if (run.fontFamily !== undefined) inline.fontFamily = run.fontFamily;
+  if (run.color !== undefined) inline.color = run.color;
+  if (run.fontSize !== undefined) inline.fontSize = run.fontSize;
+  if (run.bold !== undefined) inline.bold = run.bold;
+  if (run.italic !== undefined) inline.italic = run.italic;
+  if (run.underline !== undefined) inline.underline = run.underline;
+  if (run.strike !== undefined) inline.strike = run.strike;
+  return inline;
 }
 
 /**
