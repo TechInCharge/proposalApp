@@ -131,6 +131,19 @@ GENERATE_FONTS=${GENERATE_FONTS:-true}
 [ -n "${PRODUCT_EDITION}" ] && _is_commercial=true || _is_commercial=false
 REDIS_AVAILABLE=${_is_commercial} RABBITMQ_AVAILABLE=${_is_commercial} DB_AVAILABLE=${_is_commercial} ADMINPANEL_AVAILABLE=${_is_commercial}
 
+# --- proposalbuilder fix: docservice's own baked-in local.json already
+# points at a local RabbitMQ (confirmed via the AggregateError [ECONNREFUSED]
+# retry loop in its logs — it tries to connect regardless of this script's
+# own settings), but with PRODUCT_EDITION unset this script never starts one,
+# so every document-open attempt hangs waiting on a queue that's never
+# there. Setting PRODUCT_EDITION (the "obvious" fix, flipping DB/REDIS/
+# RABBITMQ/ADMINPANEL all to true) was tried and reverted — it also starts
+# local Postgres/Redis, and doing so caused /etc/nginx/sites-enabled/default
+# to be recreated again by then (same class of issue as the nginx fix
+# above, mechanism not identified), breaking nginx a second time. Force
+# only RabbitMQ, leaving Postgres/Redis/adminpanel untouched.
+RABBITMQ_AVAILABLE=true
+
 ONLYOFFICE_DEFAULT_CONFIG=${CONF_DIR}/local.json
 ONLYOFFICE_LOG4JS_CONFIG=${CONF_DIR}/log4js/production.json
 ONLYOFFICE_EXAMPLE_CONFIG=${CONF_DIR}-example/local.json
