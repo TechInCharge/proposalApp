@@ -59,7 +59,19 @@ export function OnlyOfficeEditor({
     popupRef.current = popup;
     popup.document.title = "Loading editor…";
     popup.document.write(
-      '<!doctype html><html><head><meta charset="utf-8"></head><body style="margin:0"><div id="editor-root" style="width:100vw;height:100vh"></div></body></html>',
+      // DocsAPI.DocEditor doesn't mount *into* #editor-root — it discards
+      // that div and inserts its own iframe as a sibling in <body>, so any
+      // sizing on the div (including the height:100vh this used to carry)
+      // is lost the moment the editor initializes. The iframe itself gets
+      // no explicit size from DocsAPI either, so it falls back to the
+      // browser's default 150px iframe height — the editor "loads" but
+      // only shows a sliver of its top toolbar. Style the iframe directly
+      // by tag (this popup only ever holds the one OnlyOffice iframe) so it
+      // fills the window regardless of what DocsAPI does to the DOM around it.
+      '<!doctype html><html><head><meta charset="utf-8">' +
+        "<style>html,body{margin:0;height:100%;width:100%}" +
+        "iframe{display:block;width:100vw !important;height:100vh !important;border:0}</style>" +
+        '</head><body><div id="editor-root" style="width:100vw;height:100vh"></div></body></html>',
     );
     popup.document.close();
 
