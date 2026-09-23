@@ -273,13 +273,32 @@ async function appendSection(client: SuperDocClient, master: SuperDocDocument, s
   const blocksBefore = (await master.blocks.list()).total;
   await master.insert({ type: "html", value: html });
 
-  if (markers.length !== images.length) {
-    // A real fidelity bug (an image silently didn't survive the HTML round
-    // trip, or a non-image object got miscounted as one) — surface it
-    // instead of guessing which marker belongs to which image.
+  if (images.length > markers.length) {
+    // More real image bytes than places to put them is a genuine fidelity
+    // bug — an image silently didn't survive the HTML round trip — and a
+    // real image dropped is real content loss, so this still fails loudly
+    // rather than guessing where it belongs.
     throw new Error(
-      `${sectionPath}: found ${images.length} image(s) but ${markers.length} placeholder marker(s) in its exported HTML`,
+      `${sectionPath}: found ${images.length} image(s) but only ${markers.length} placeholder marker(s) in its exported HTML`,
     );
+  }
+  if (markers.length > images.length) {
+    // The other direction is NOT a content-loss bug, just imprecise
+    // counting: getHtml() placeholders out *any* non-text object the same
+    // way, not only images — confirmed live on a real production section
+    // where a marker turned out to belong to something images.list() never
+    // counted as an image at all (exact object type unconfirmed; a
+    // LibreOffice-specific HTML→docx quirk on that one section, not
+    // reproducible with a synthetic image of the same size/markup on the
+    // same LibreOffice version — see the investigation notes on this
+    // commit). There's no image data for these leftover markers regardless
+    // of what they turn out to be, so there's nothing to lose by clearing
+    // the placeholder text and moving on instead of failing the whole
+    // proposal over it.
+    for (let i = images.length; i < markers.length; i++) {
+      const leftover = await master.query.match({ select: { type: "text", pattern: markers[i], mode: "contains" }, require: "any" });
+      if (leftover.total > 0) await master.delete({ ref: leftover.items[0].handle.ref });
+    }
   }
 
   for (let i = 0; i < images.length; i++) {
