@@ -3,8 +3,8 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card, Input } from "@/components/ui";
-import { SectionEditor } from "@/components/SectionEditor";
-import type { SectionEditorHandle } from "@/components/SectionEditorImpl";
+import { SectionDocxEditor } from "@/components/SectionDocxEditor";
+import type { SectionDocxEditorHandle } from "@/components/SectionDocxEditorImpl";
 import {
   updateProposalSection,
   reorderProposalSections,
@@ -23,10 +23,9 @@ export function SectionsPanel({
   const [pending, start] = useTransition();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftTitle, setDraftTitle] = useState("");
-  const [draftBody, setDraftBody] = useState<unknown>(null);
   const [refreshNote, setRefreshNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const editorHandleRef = useRef<SectionEditorHandle | null>(null);
+  const editorHandleRef = useRef<SectionDocxEditorHandle | null>(null);
 
   function refresh() {
     setRefreshNote(null);
@@ -93,7 +92,6 @@ export function SectionsPanel({
   function openEdit(s: WorkspaceSection) {
     setEditingId(s.id);
     setDraftTitle(s.title);
-    setDraftBody(s.body);
     setError(null);
   }
 
@@ -107,15 +105,16 @@ export function SectionsPanel({
         return;
       }
 
-      let bodyUrl: string;
+      let bodyUrl: string | null;
       try {
-        const docx = await handle.getDocx();
-        const uploadRes = await fetch("/api/editor/section-body", { method: "POST", body: docx });
-        const uploadJson = await uploadRes.json();
-        if (!uploadRes.ok) throw new Error(uploadJson.error ?? "Upload failed");
-        bodyUrl = uploadJson.url;
+        const saved = await handle.save();
+        bodyUrl = saved.bodyUrl;
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to save document");
+        return;
+      }
+      if (!bodyUrl) {
+        setError("Save succeeded but returned no document — try again");
         return;
       }
 
@@ -173,7 +172,7 @@ export function SectionsPanel({
                 value={draftTitle}
                 onChange={(e) => setDraftTitle(e.target.value)}
               />
-              <SectionEditor value={draftBody} onReady={(h) => (editorHandleRef.current = h)} />
+              <SectionDocxEditor kind="proposal-section" id={s.id} onReady={(h) => (editorHandleRef.current = h)} />
               {error && <p className="text-sm text-red-600">{error}</p>}
               <div className="flex gap-2">
                 <Button onClick={save} disabled={pending}>

@@ -11,5 +11,21 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
+  onlyoffice:
+    image: onlyoffice/documentserver:latest
+    restart: unless-stopped
+    environment:
+      JWT_ENABLED: "true"
+      # Must match ONLYOFFICE_JWT_SECRET / NEXT_PUBLIC_ONLYOFFICE_URL in .env
+      # — this is a local-only placeholder, never reuse it anywhere real.
+      JWT_SECRET: "local-dev-onlyoffice-secret-change-me"
+    ports:
+      - "8080:80"
+    volumes:
+      - onlyoffice-data:/var/www/onlyoffice/Data
+      - onlyoffice-log:/var/log/onlyoffice
+
 volumes:
   pgdata:
+  onlyoffice-data:
+  onlyoffice-log:

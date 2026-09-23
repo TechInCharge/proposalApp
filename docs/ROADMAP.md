@@ -102,12 +102,15 @@ Full write-up and findings: `/Users/djenane/.claude/plans/abundant-rolling-dawn.
       license and the exact source commit a deploy was built from).
 - [x] Dead-code removal: CKEditor, Puppeteer, `@turbodocx/html-to-docx`, and
       everything only they used.
-- [ ] Validate the LibreOffice pipeline (`railpack.json`) against an actual
-      Railway build — only tested locally (macOS) so far. Note: the
-      project's Railway service uses the **Railpack** builder, not
-      Nixpacks — an earlier `nixpacks.toml` was silently never read;
-      corrected to `railpack.json` (`deploy.aptPackages`), the config
-      Railpack actually applies.
+- [x] Validate the LibreOffice pipeline (`railpack.json`) against an actual
+      Railway build. Found and fixed a real config bug first: the project's
+      Railway service uses the **Railpack** builder, not Nixpacks — an
+      earlier `nixpacks.toml` was silently never read; corrected to
+      `railpack.json` (`deploy.aptPackages`), the config Railpack actually
+      applies. Deployed and verified live: LibreOffice 7.4.7.2 confirmed
+      running via Railway's console (`soffice --version`), and a real
+      proposal generated end-to-end in production with correct content
+      (checked the actual `.docx` bytes, not just "no error").
 - [ ] Header/footer text + page numbers (`BrandProfile.headerText`/
       `footerText`/`showPageNumbers`) — not applied by the new generation
       pipeline yet; the old one set these as PDF/DOCX rendering options that

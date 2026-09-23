@@ -3,10 +3,11 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card, Input } from "@/components/ui";
-import { SectionEditor } from "@/components/SectionEditor";
-import type { SectionEditorHandle } from "@/components/SectionEditorImpl";
+import { SectionDocxEditor } from "@/components/SectionDocxEditor";
+import type { SectionDocxEditorHandle } from "@/components/SectionDocxEditorImpl";
 import {
   saveSectionTemplate,
+  createDraftSectionTemplate,
   deleteSectionTemplate,
   reorderSectionTemplates,
 } from "@/server/products";
@@ -24,21 +25,26 @@ export function ProductSectionsManager({
   const [pending, start] = useTransition();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftTitle, setDraftTitle] = useState("");
-  const [draftBody, setDraftBody] = useState<unknown>(null);
   const [error, setError] = useState<string | null>(null);
-  const editorHandleRef = useRef<SectionEditorHandle | null>(null);
+  const editorHandleRef = useRef<SectionDocxEditorHandle | null>(null);
 
   function openNew() {
-    setEditingId("new");
-    setDraftTitle("");
-    setDraftBody(null);
     setError(null);
+    start(async () => {
+      const res = await createDraftSectionTemplate(productId);
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      router.refresh();
+      setDraftTitle("Untitled section");
+      setEditingId(res.id);
+    });
   }
 
   function openEdit(s: Section) {
     setEditingId(s.id);
     setDraftTitle(s.title);
-    setDraftBody(s.body ?? null);
     setError(null);
   }
 
@@ -50,28 +56,27 @@ export function ProductSectionsManager({
         setError("Editor is not ready yet");
         return;
       }
+      if (!editingId) return;
 
-      let bodyUrl: string;
+      let bodyUrl: string | null;
       try {
-        const docx = await handle.getDocx();
-        const uploadRes = await fetch("/api/editor/section-body", { method: "POST", body: docx });
-        const uploadJson = await uploadRes.json();
-        if (!uploadRes.ok) throw new Error(uploadJson.error ?? "Upload failed");
-        bodyUrl = uploadJson.url;
+        const saved = await handle.save();
+        bodyUrl = saved.bodyUrl;
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to save document");
         return;
       }
+      if (!bodyUrl) {
+        setError("Save succeeded but returned no document — try again");
+        return;
+      }
 
-      const res = await saveSectionTemplate(
-        editingId === "new" ? null : editingId,
-        {
-          productId,
-          title: draftTitle,
-          order: editingId === "new" ? sections.length : 0,
-          body: bodyUrl,
-        },
-      );
+      const res = await saveSectionTemplate(editingId, {
+        productId,
+        title: draftTitle,
+        order: sections.find((s) => s.id === editingId)?.order ?? sections.length,
+        body: bodyUrl,
+      });
       if (!res.ok) {
         setError(res.error);
         return;
@@ -107,12 +112,12 @@ export function ProductSectionsManager({
     <div className="grid gap-3">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Section templates</h2>
-        <Button variant="secondary" onClick={openNew} disabled={editingId === "new"}>
+        <Button variant="secondary" onClick={openNew} disabled={pending}>
           Add section
         </Button>
       </div>
 
-      {sections.length === 0 && editingId !== "new" && (
+      {sections.length === 0 && (
         <p className="text-sm text-slate-500">No sections yet.</p>
       )}
 
@@ -145,7 +150,7 @@ export function ProductSectionsManager({
           {editingId === s.id && (
             <Editor
               title={draftTitle}
-              body={draftBody}
+              sectionId={s.id}
               onTitle={setDraftTitle}
               onEditorReady={(h) => (editorHandleRef.current = h)}
               onSave={save}
@@ -156,28 +161,13 @@ export function ProductSectionsManager({
           )}
         </Card>
       ))}
-
-      {editingId === "new" && (
-        <Card>
-          <Editor
-            title={draftTitle}
-            body={draftBody}
-            onTitle={setDraftTitle}
-            onEditorReady={(h) => (editorHandleRef.current = h)}
-            onSave={save}
-            onCancel={() => setEditingId(null)}
-            pending={pending}
-            error={error}
-          />
-        </Card>
-      )}
     </div>
   );
 }
 
 function Editor({
   title,
-  body,
+  sectionId,
   onTitle,
   onEditorReady,
   onSave,
@@ -186,9 +176,9 @@ function Editor({
   error,
 }: {
   title: string;
-  body: unknown;
+  sectionId: string;
   onTitle: (v: string) => void;
-  onEditorReady: (handle: SectionEditorHandle) => void;
+  onEditorReady: (handle: SectionDocxEditorHandle) => void;
   onSave: () => void;
   onCancel: () => void;
   pending: boolean;
@@ -201,7 +191,7 @@ function Editor({
         value={title}
         onChange={(e) => onTitle(e.target.value)}
       />
-      <SectionEditor value={body} onReady={onEditorReady} />
+      <SectionDocxEditor kind="section-template" id={sectionId} onReady={onEditorReady} />
       {error && <p className="text-sm text-red-600">{error}</p>}
       <div className="flex gap-2">
         <Button onClick={onSave} disabled={pending || !title.trim()}>
