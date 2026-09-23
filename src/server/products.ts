@@ -10,6 +10,7 @@ import {
   sectionTemplateInput,
   type ProductInput,
 } from "@/lib/validators";
+import { BLANK_DOCUMENT_URL } from "@/lib/onlyoffice/constants";
 
 export async function saveProduct(
   id: string | null,
@@ -109,6 +110,33 @@ export async function saveSectionTemplate(
   const count = await prisma.sectionTemplate.count({ where: { productId } });
   const created = await prisma.sectionTemplate.create({
     data: { productId, title, order: order || count, body, placeholders },
+  });
+  revalidatePath(`/products/${productId}`);
+  return { ok: true, id: created.id };
+}
+
+/**
+ * Creates a blank section row immediately (title "Untitled section", body
+ * pointing at the shared blank starter doc) and returns its id. Needed
+ * because the OnlyOffice-based editor (SectionDocxEditor) always edits an
+ * existing row's real identity — unlike the old SuperDoc editor, there's no
+ * "start blank, only create the row on Save" path. Cancelling out of editing
+ * a freshly-created draft leaves it in the list as an empty "Untitled
+ * section" rather than rolling it back — same tradeoff as an "Untitled
+ * document" in Google Docs/Notion.
+ */
+export async function createDraftSectionTemplate(
+  productId: string,
+): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+  await requireRole("ADMIN");
+  const count = await prisma.sectionTemplate.count({ where: { productId } });
+  const created = await prisma.sectionTemplate.create({
+    data: {
+      productId,
+      title: "Untitled section",
+      order: count,
+      body: BLANK_DOCUMENT_URL,
+    },
   });
   revalidatePath(`/products/${productId}`);
   return { ok: true, id: created.id };
