@@ -8,7 +8,12 @@ export default auth((req) => {
     pathname === "/login" ||
     pathname.startsWith("/api/auth") ||
     pathname === "/api/health" ||
-    pathname === "/403";
+    pathname === "/403" ||
+    // Called server-to-server by the OnlyOffice Document Server, which has
+    // no session cookie — protected by their own route/JWT tokens instead
+    // (see src/lib/onlyoffice/jwt.ts), not the browser session.
+    pathname === "/api/onlyoffice/document" ||
+    pathname === "/api/onlyoffice/callback";
 
   if (!req.auth && !isPublic) {
     const url = new URL("/login", req.nextUrl.origin);
