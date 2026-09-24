@@ -3,7 +3,7 @@ import JSZip from "jszip";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { extractParagraphRuns, hasDirectFormatting, type RunFormat } from "@/lib/render/run-formatting";
+import { extractParagraphAlignment, extractParagraphRuns, hasDirectFormatting, type RunFormat } from "@/lib/render/run-formatting";
 
 /**
  * Composes a cover + N section .docx documents + a Bill of Quantities table
@@ -363,21 +363,27 @@ type SectionBlock = Awaited<ReturnType<SuperDocDocument["blocks"]["list"]>>["blo
 
 /**
  * Re-applies each source paragraph's direct run formatting (font, size,
- * color, bold, italic, underline, strike) onto its newly-inserted copy in
- * `master` — see run-formatting.ts's doc comment for why this is needed at
- * all (getHtml()/insert() only carry structural formatting).
+ * color, bold, italic, underline, strike) and its own paragraph alignment
+ * (left/center/right/justify) onto its newly-inserted copy in `master` —
+ * see run-formatting.ts's doc comment for why this is needed at all
+ * (getHtml()/insert() only carry structural formatting, and this covers
+ * both a run-level gap and a paragraph-level one with the same mechanism).
+ * Paragraph alignment matters even for a paragraph with no text runs at all
+ * — an image-only paragraph the author centered in the editor is exactly
+ * this case (confirmed live: a section's centered images rendered
+ * left-aligned in the generated proposal before this existed).
  *
- * Alignment: `master.insert({type:"html"})` appends exactly one new block
- * per source block, in the same order (confirmed by direct reproduction —
- * a 108-paragraph source section produced exactly 108 new blocks in master,
- * pair-for-pair identical nodeType/order, plus the one extra guard
- * paragraph appended after). So the very next `sourceBlocks.length` blocks
- * in `master` after `blocksBefore` are this section's own blocks, positionally
- * 1:1 — including table blocks, which this deliberately does nothing with
- * (the BoQ table's own header is already branded separately by
- * applyBrandColors/shadeCellsContaining; a user-authored table's cell
- * formatting isn't in scope here) but still has to be *counted* to keep
- * later paragraphs aligned.
+ * Block alignment: `master.insert({type:"html"})` appends exactly one new
+ * block per source block, in the same order (confirmed by direct
+ * reproduction — a 108-paragraph source section produced exactly 108 new
+ * blocks in master, pair-for-pair identical nodeType/order, plus the one
+ * extra guard paragraph appended after). So the very next
+ * `sourceBlocks.length` blocks in `master` after `blocksBefore` are this
+ * section's own blocks, positionally 1:1 — including table blocks, which
+ * this deliberately does nothing with (the BoQ table's own header is
+ * already branded separately by applyBrandColors/shadeCellsContaining; a
+ * user-authored table's cell formatting isn't in scope here) but still has
+ * to be *counted* to keep later paragraphs aligned.
  */
 async function restoreDirectFormatting(
   master: SuperDocDocument,
@@ -392,11 +398,23 @@ async function restoreDirectFormatting(
   for (let i = 0; i < sourceBlocks.length; i++) {
     const sourceBlock = sourceBlocks[i];
     if (sourceBlock.nodeType === "table" || sourceBlock.nodeType === "tableRow" || sourceBlock.nodeType === "tableCell") continue;
+    const newBlock = newBlocks[i];
+
+    // format.paragraph.setAlignment's own target type only accepts these
+    // three nodeTypes — matches what blocks.list() actually reports for a
+    // plain or image-carrying paragraph (always "paragraph", never a
+    // separate "image" nodeType — inline images live inside a paragraph's
+    // own runs in OOXML, same as text).
+    const alignment = extractParagraphAlignment(sourceDocumentXml, sourceBlock.nodeId);
+    if (alignment && (newBlock.nodeType === "paragraph" || newBlock.nodeType === "heading" || newBlock.nodeType === "listItem")) {
+      await master.format.paragraph
+        .setAlignment({ target: { kind: "block", nodeType: newBlock.nodeType, nodeId: newBlock.nodeId }, alignment })
+        .catch(() => {});
+    }
 
     const runs = extractParagraphRuns(sourceDocumentXml, sourceBlock.nodeId).filter(hasDirectFormatting);
     if (runs.length === 0) continue;
 
-    const newBlock = newBlocks[i];
     const occurrenceIndex = new Map<string, number>();
     for (const run of runs) {
       const idx = occurrenceIndex.get(run.text) ?? 0;
