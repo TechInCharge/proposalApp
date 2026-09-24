@@ -34,6 +34,8 @@ export interface RunFormat {
   strike?: boolean;
 }
 
+export type ParagraphAlignment = "left" | "center" | "right" | "justify";
+
 function decodeXmlText(s: string): string {
   return s
     .replace(/&lt;/g, "<")
@@ -41,6 +43,14 @@ function decodeXmlText(s: string): string {
     .replace(/&quot;/g, '"')
     .replace(/&apos;/g, "'")
     .replace(/&amp;/g, "&");
+}
+
+/** Finds one paragraph's own inner XML (everything between `<w:p ...>` and `</w:p>`) by its `w14:paraId`. */
+function findParagraphInner(documentXml: string, paraId: string): string | null {
+  const paraMatch = documentXml.match(
+    new RegExp(`<w:p\\b[^>]*\\bw14:paraId="${paraId}"[^>]*>([\\s\\S]*?)</w:p>`),
+  );
+  return paraMatch ? paraMatch[1] : null;
 }
 
 /**
@@ -52,11 +62,8 @@ function decodeXmlText(s: string): string {
  * reference) abort the whole pass.
  */
 export function extractParagraphRuns(documentXml: string, paraId: string): RunFormat[] {
-  const paraMatch = documentXml.match(
-    new RegExp(`<w:p\\b[^>]*\\bw14:paraId="${paraId}"[^>]*>([\\s\\S]*?)</w:p>`),
-  );
-  if (!paraMatch) return [];
-  const paraInner = paraMatch[1];
+  const paraInner = findParagraphInner(documentXml, paraId);
+  if (paraInner === null) return [];
 
   const runs: RunFormat[] = [];
   const runRe = /<w:r\b[^>]*>([\s\S]*?)<\/w:r>/g;
@@ -86,6 +93,46 @@ export function extractParagraphRuns(documentXml: string, paraId: string): RunFo
     runs.push(format);
   }
   return runs;
+}
+
+/**
+ * A paragraph's own explicit alignment (`<w:pPr><w:jc w:val="..."/>`),
+ * mapped to the value `doc.format.paragraph.setAlignment` accepts.
+ *
+ * Same gap as run formatting, different symptom: confirmed live that
+ * `getHtml()` drops `w:jc` from every paragraph it exports (no `text-align`
+ * style, no attribute — nothing), and `blocks.list()`'s own `alignment`
+ * field (which looks like exactly the right read-back API) comes back
+ * `undefined` for every block regardless of what the source XML says —
+ * checked directly against a real section with 29 explicitly center-aligned
+ * image paragraphs. A user who centers an image (or a heading, or a pull
+ * quote) in the SuperDoc editor gets it silently left-aligned in the
+ * generated proposal without this. Undefined/unrecognized `w:jc` values
+ * (e.g. the rare Kashida/Thai justification variants) are left alone rather
+ * than guessed at.
+ */
+export function extractParagraphAlignment(documentXml: string, paraId: string): ParagraphAlignment | undefined {
+  const paraInner = findParagraphInner(documentXml, paraId);
+  if (paraInner === null) return undefined;
+  const pPrMatch = paraInner.match(/<w:pPr>([\s\S]*?)<\/w:pPr>/);
+  if (!pPrMatch) return undefined;
+  const jcMatch = pPrMatch[1].match(/<w:jc\b[^>]*\bw:val="([^"]*)"/);
+  if (!jcMatch) return undefined;
+  switch (jcMatch[1]) {
+    case "left":
+    case "start":
+      return "left";
+    case "right":
+    case "end":
+      return "right";
+    case "center":
+      return "center";
+    case "both":
+    case "distribute":
+      return "justify";
+    default:
+      return undefined;
+  }
 }
 
 /** Whether a run carries any direct formatting worth restoring. */
