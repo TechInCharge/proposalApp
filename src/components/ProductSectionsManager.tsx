@@ -51,24 +51,30 @@ export function ProductSectionsManager({
   function save() {
     setError(null);
     start(async () => {
-      const handle = editorHandleRef.current;
-      if (!handle) {
-        setError("Editor is not ready yet");
-        return;
-      }
       if (!editingId) return;
 
-      let bodyUrl: string | null;
-      try {
-        const saved = await handle.save();
-        bodyUrl = saved.bodyUrl;
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Failed to save document");
-        return;
-      }
-      if (!bodyUrl) {
-        setError("Save succeeded but returned no document — try again");
-        return;
+      // The OnlyOffice editor only hands back a save handle once the user
+      // has actually clicked "Open editor in a new window" and it's
+      // finished loading — unlike the old auto-mounting editor, opening it
+      // isn't required just to change the title. Requiring `handle` here
+      // unconditionally made a title-only rename impossible (blocked with
+      // "Editor is not ready yet") for anyone who hadn't also opened the
+      // document. Only touch the document body if the editor was actually
+      // opened; otherwise keep the row's existing body untouched.
+      const handle = editorHandleRef.current;
+      let bodyUrl: unknown = sections.find((s) => s.id === editingId)?.body;
+      if (handle) {
+        try {
+          const saved = await handle.save();
+          bodyUrl = saved.bodyUrl;
+        } catch (e) {
+          setError(e instanceof Error ? e.message : "Failed to save document");
+          return;
+        }
+        if (!bodyUrl) {
+          setError("Save succeeded but returned no document — try again");
+          return;
+        }
       }
 
       const res = await saveSectionTemplate(editingId, {
