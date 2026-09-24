@@ -99,28 +99,31 @@ export function SectionsPanel({
     if (!editingId) return;
     setError(null);
     start(async () => {
+      // Same fix as ProductSectionsManager's save(): the OnlyOffice editor
+      // only hands back a save handle once the user has actually opened it
+      // in a new window, so requiring it unconditionally made a title-only
+      // rename impossible. updateProposalSection's `body` is optional and
+      // leaves the row's existing body untouched when omitted, so a rename
+      // with the editor never opened just doesn't pass one.
       const handle = editorHandleRef.current;
-      if (!handle) {
-        setError("Editor is not ready yet");
-        return;
-      }
-
-      let bodyUrl: string | null;
-      try {
-        const saved = await handle.save();
-        bodyUrl = saved.bodyUrl;
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Failed to save document");
-        return;
-      }
-      if (!bodyUrl) {
-        setError("Save succeeded but returned no document — try again");
-        return;
+      let bodyUrl: string | undefined;
+      if (handle) {
+        try {
+          const saved = await handle.save();
+          bodyUrl = saved.bodyUrl ?? undefined;
+        } catch (e) {
+          setError(e instanceof Error ? e.message : "Failed to save document");
+          return;
+        }
+        if (!bodyUrl) {
+          setError("Save succeeded but returned no document — try again");
+          return;
+        }
       }
 
       await updateProposalSection(editingId, {
         title: draftTitle,
-        body: bodyUrl,
+        ...(bodyUrl !== undefined ? { body: bodyUrl } : {}),
       });
       setEditingId(null);
       router.refresh();

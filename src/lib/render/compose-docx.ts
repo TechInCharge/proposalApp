@@ -182,24 +182,48 @@ interface ExtractedImage {
   height: number;
 }
 
-/** Extract every image's raw bytes (and original size) from a .docx file, in document order. */
+/**
+ * Media paths (e.g. "word/media/image1.png") that document.xml itself
+ * actually references — i.e. body content, as opposed to a header/footer
+ * image that happens to live in the same package. Confirmed live on a real
+ * section: doc.images.list() counts an image from the document's *header*
+ * (a small logo OnlyOffice had added there, unrelated to anything the
+ * author typed into the body) right alongside the real content images —
+ * getHtml() correctly never placeholders it out, since getHtml() only
+ * exports the body story, but images.list() doesn't distinguish which story
+ * an image belongs to, so a header/footer image was silently inflating the
+ * image count past the marker count and tripping the fidelity-bug check
+ * below on a document that had no actual content-image problem at all.
+ */
+async function bodyImageMediaPaths(zip: JSZip): Promise<Set<string>> {
+  const rels = await zip.file("word/_rels/document.xml.rels")?.async("string");
+  if (!rels) return new Set();
+  const targets = [...rels.matchAll(/<Relationship[^>]*\bTarget="([^"]*)"[^>]*>/g)].map((m) => m[1]);
+  return new Set(targets.map((t) => `word/${t}`));
+}
+
+/** Extract every body-content image's raw bytes (and original size) from a .docx file, in document order. */
 async function extractImages(client: SuperDocClient, path: string): Promise<ExtractedImage[]> {
+  // doc.images.get() (SDK) returns metadata only, never raw bytes (confirmed
+  // empirically) — properties.src is always a real word/media/<hash> path
+  // inside the package, so read it straight out of the zip instead.
+  const zip = await JSZip.loadAsync(await readFile(path));
+  const bodyPaths = await bodyImageMediaPaths(zip);
+
   const doc = await client.open({ doc: path });
   const items: { mediaPath: string; width: number; height: number }[] = [];
   try {
     const list = await doc.images.list();
     for (const item of list.items) {
       const props = item.properties as { src?: string; size?: { width?: number; height?: number } } | undefined;
-      if (props?.src) items.push({ mediaPath: props.src, width: props.size?.width ?? 100, height: props.size?.height ?? 100 });
+      if (props?.src && bodyPaths.has(props.src)) {
+        items.push({ mediaPath: props.src, width: props.size?.width ?? 100, height: props.size?.height ?? 100 });
+      }
     }
   } finally {
     await doc.close({ discard: true }).catch(() => {});
   }
 
-  // doc.images.get() (SDK) returns metadata only, never raw bytes (confirmed
-  // empirically) — properties.src is always a real word/media/<hash> path
-  // inside the package, so read it straight out of the zip instead.
-  const zip = await JSZip.loadAsync(await readFile(path));
   const result: ExtractedImage[] = [];
   for (const { mediaPath, width, height } of items) {
     const entry = zip.file(mediaPath);
@@ -273,13 +297,32 @@ async function appendSection(client: SuperDocClient, master: SuperDocDocument, s
   const blocksBefore = (await master.blocks.list()).total;
   await master.insert({ type: "html", value: html });
 
-  if (markers.length !== images.length) {
-    // A real fidelity bug (an image silently didn't survive the HTML round
-    // trip, or a non-image object got miscounted as one) — surface it
-    // instead of guessing which marker belongs to which image.
+  if (images.length > markers.length) {
+    // More real image bytes than places to put them is a genuine fidelity
+    // bug — an image silently didn't survive the HTML round trip — and a
+    // real image dropped is real content loss, so this still fails loudly
+    // rather than guessing where it belongs.
     throw new Error(
-      `${sectionPath}: found ${images.length} image(s) but ${markers.length} placeholder marker(s) in its exported HTML`,
+      `${sectionPath}: found ${images.length} image(s) but only ${markers.length} placeholder marker(s) in its exported HTML`,
     );
+  }
+  if (markers.length > images.length) {
+    // The other direction is NOT a content-loss bug, just imprecise
+    // counting: getHtml() placeholders out *any* non-text object the same
+    // way, not only images — confirmed live on a real production section
+    // where a marker turned out to belong to something images.list() never
+    // counted as an image at all (exact object type unconfirmed; a
+    // LibreOffice-specific HTML→docx quirk on that one section, not
+    // reproducible with a synthetic image of the same size/markup on the
+    // same LibreOffice version — see the investigation notes on this
+    // commit). There's no image data for these leftover markers regardless
+    // of what they turn out to be, so there's nothing to lose by clearing
+    // the placeholder text and moving on instead of failing the whole
+    // proposal over it.
+    for (let i = images.length; i < markers.length; i++) {
+      const leftover = await master.query.match({ select: { type: "text", pattern: markers[i], mode: "contains" }, require: "any" });
+      if (leftover.total > 0) await master.delete({ ref: leftover.items[0].handle.ref });
+    }
   }
 
   for (let i = 0; i < images.length; i++) {
